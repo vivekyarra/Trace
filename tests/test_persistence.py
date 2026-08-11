@@ -1,5 +1,6 @@
-from trace_memory.persistence.database import is_retryable_serialization_error
 from pathlib import Path
+
+from trace_memory.persistence.database import is_retryable_serialization_error
 
 
 class RetryableError(Exception):

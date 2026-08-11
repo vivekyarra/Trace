@@ -110,6 +110,7 @@ class Memory(TraceModel):
     severity: str | None = None
     content_hash: str = Field(min_length=1)
     semantic_key: str = Field(min_length=1)
+    embedding: list[float] | None = None
     embedding_model: str | None = None
     embedding_version: str | None = None
     embedded_at: datetime | None = None
@@ -132,6 +133,13 @@ class Memory(TraceModel):
             raise ValueError("valid_until cannot precede valid_from")
         if (self.embedding_model is None) != (self.embedding_version is None):
             raise ValueError("embedding model and version must be set together")
+        if self.embedding is not None:
+            if len(self.embedding) != 1024:
+                raise ValueError("memory embeddings must contain exactly 1024 values")
+            if self.embedding_model is None or self.embedded_at is None:
+                raise ValueError("embedded memories require model, version, and timestamp metadata")
+        elif self.embedded_at is not None:
+            raise ValueError("embedded_at requires an embedding")
         return self
 
 
@@ -189,6 +197,9 @@ class AgentTask(TraceModel):
     started_at: datetime | None = None
     completed_at: datetime | None = None
     last_error: str | None = None
+    locked_until: datetime | None = None
+    checkpoint: dict[str, Any] = Field(default_factory=dict)
+    external_effect_id: str | None = None
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 
@@ -232,6 +243,7 @@ class AgentAction(TraceModel):
     actor_type: ActorType
     actor_id: str = Field(min_length=1)
     prompt_version: str | None = None
+    model_id: str | None = None
     input_summary: str = Field(min_length=1)
     output_summary: str | None = None
     created_at: datetime = Field(default_factory=utc_now)

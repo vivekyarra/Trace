@@ -8,11 +8,8 @@ class Repository:
     def __init__(self) -> None:
         self.events: list[tuple] = []
 
-    def create(self, memory: Memory) -> None:
-        self.events.append(("create", memory.id))
-
-    def supersede(self, *, current_id: object, replacement_id: object) -> None:
-        self.events.append(("supersede", current_id, replacement_id))
+    def replace_atomic(self, *, current_id: object, replacement: Memory) -> None:
+        self.events.append(("replace_atomic", current_id, replacement.id))
 
 
 def replacement() -> Memory:
@@ -23,8 +20,7 @@ def replacement() -> Memory:
                   created_by_actor_type=ActorType.HUMAN, created_by_actor_id="vivek")
 
 
-def test_intentional_override_preserves_history_by_creating_then_superseding() -> None:
+def test_intentional_override_uses_one_atomic_repository_operation() -> None:
     repository = Repository()
     new = MemoryGovernor(repository).intentional_override(current_id=uuid4(), replacement=replacement())
-    assert repository.events[0] == ("create", new.id)
-    assert repository.events[1][0] == "supersede"
+    assert repository.events == [("replace_atomic", repository.events[0][1], new.id)]

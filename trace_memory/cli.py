@@ -53,9 +53,11 @@ def main(argv: list[str] | None = None) -> int:
         print("applied: " + (", ".join(applied) if applied else "none"))
         return 0
     if args.command == "import":
+        from trace_memory.ai import BedrockEmbedder
         content = args.path.read_text(encoding="utf-8")
         recorder = ImportRunRepository(database, organization_id=organization_id, repository_id=repository_id)
-        report = LegacyMemoryImporter(MemoryRepository(database), organization_id, repository_id, recorder).import_text(
+        report = LegacyMemoryImporter(MemoryRepository(database), organization_id, repository_id,
+                                      recorder, BedrockEmbedder()).import_text(
             content, strict=not args.best_effort, source_name=args.path.name)
         print(f"imported={report.imported} skipped={report.skipped}")
         return 0
@@ -80,14 +82,14 @@ def main(argv: list[str] | None = None) -> int:
         from trace_memory.agents import Guardkeeper
         from trace_memory.ai import BedrockEmbedder, BedrockReasoner
         memories = MemoryRepository(database)
+        reasoner = BedrockReasoner()
         automation = GitHubAutomation(
             github=GitHubClient(settings.github_token, settings.github_repository),
-            reasoner=BedrockReasoner(), embedder=BedrockEmbedder(),
-            guardkeeper=Guardkeeper(memories), memories=memories,
-            organization_id=organization_id, repository_id=repository_id,
+            reasoner=reasoner, embedder=BedrockEmbedder(),
+            guardkeeper=Guardkeeper(memories, reasoner=reasoner), memories=memories,
+            organization_id=organization_id, repository_id=repository_id, effects=store,
         )
-        worker = SqsTaskWorker(sqs, settings.sqs_queue_url, store, automation,
-                               dead_letter_queue_url=settings.sqs_dead_letter_queue_url)
+        worker = SqsTaskWorker(sqs, settings.sqs_queue_url, store, automation)
         return _worker_loop(lambda: worker.run_once(), args.once)
     raise AssertionError("unhandled command")
 

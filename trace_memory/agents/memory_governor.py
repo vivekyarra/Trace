@@ -9,12 +9,11 @@ from trace_memory.domain import Memory
 
 
 class MemoryWriter(Protocol):
-    def create(self, memory: Memory) -> None: ...
-    def supersede(self, *, current_id: UUID, replacement_id: UUID) -> None: ...
+    def replace_atomic(self, *, current_id: UUID, replacement: Memory, **kwargs: object) -> None: ...
 
 
 class MemoryGovernor:
-    """Creates first, then supersedes inside the repository's retrying transaction boundary."""
+    """Delegates the entire successor transition to one CockroachDB transaction."""
 
     def __init__(self, repository: MemoryWriter) -> None:
         self._repository = repository
@@ -22,6 +21,5 @@ class MemoryGovernor:
     def intentional_override(self, *, current_id: UUID, replacement: Memory) -> Memory:
         if replacement.superseded_by is not None:
             raise ValueError("replacement memory must begin active, not pre-superseded")
-        self._repository.create(replacement)
-        self._repository.supersede(current_id=current_id, replacement_id=replacement.id)
+        self._repository.replace_atomic(current_id=current_id, replacement=replacement)
         return replacement

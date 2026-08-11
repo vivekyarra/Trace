@@ -110,20 +110,23 @@ class GitHubClient:
     api_url: str = "https://api.github.com"
     timeout_seconds: int = 15
 
-    def _request(self, method: str, path: str, payload: dict[str, object] | None = None) -> object:
+    def _request(self, method: str, path: str, payload: dict[str, object] | None = None,
+                 *, accept: str = "application/vnd.github+json", raw: bool = False) -> object:
         endpoint = urlsplit(self.api_url)
         if endpoint.scheme != "https" or endpoint.hostname != "api.github.com" or endpoint.username:
             raise ValueError("GitHub API URL must be https://api.github.com")
         data = json.dumps(payload).encode() if payload is not None else None
         request = Request(
             f"{self.api_url}/repos/{self.repository}/{path.lstrip('/')}", data=data, method=method,
-            headers={"Accept": "application/vnd.github+json", "Authorization": f"Bearer {self.token}",
+            headers={"Accept": accept, "Authorization": f"Bearer {self.token}",
                      "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "trace-memory-runtime"},
         )
         try:
             with urlopen(request, timeout=self.timeout_seconds) as response:
-                raw = response.read()
-                return json.loads(raw) if raw else {}
+                response_body = response.read()
+                if raw:
+                    return response_body.decode("utf-8", errors="replace")
+                return json.loads(response_body) if response_body else {}
         except HTTPError as error:
             # Never include the token or an unbounded remote response in errors.
             raise RuntimeError(f"GitHub API {method} {path} failed with HTTP {error.code}") from error
@@ -133,6 +136,18 @@ class GitHubClient:
 
     def pull_request_files(self, number: int) -> list[dict[str, object]]:
         return list(self._request("GET", f"pulls/{number}/files?per_page=100"))
+
+    def complete_pull_request_diff(self, number: int, files: list[dict[str, object]]) -> tuple[str, bool]:
+        """Use file patches when complete; otherwise fetch GitHub's full diff representation."""
+        incomplete = len(files) >= 100 or any(
+            not file.get("patch") or bool(file.get("previous_filename"))
+            for file in files if str(file.get("status", "")) != "removed"
+        )
+        patch = "\n".join(str(file.get("patch", "")) for file in files)
+        if incomplete:
+            full = str(self._request("GET", f"pulls/{number}", accept="application/vnd.github.diff", raw=True))
+            return full[:500_000], len(full) <= 500_000
+        return patch[:500_000], len(patch) <= 500_000
 
     def issue_comments(self, number: int) -> list[dict[str, object]]:
         return list(self._request("GET", f"issues/{number}/comments?per_page=100"))
@@ -144,3 +159,11 @@ class GitHubClient:
         if not body.strip() or len(body) > 65_536:
             raise ValueError("comment must contain 1..65536 characters")
         return dict(self._request("POST", f"issues/{number}/comments", {"body": body}))
+
+    def post_comment_once(self, number: int, task_id: UUID, body: str) -> dict[str, object]:
+        """Close the accepted-comment/crashed-before-commit duplication window."""
+        marker = f"<!-- trace-task:{task_id} -->"
+        for comment in self.issue_comments(number):
+            if marker in str(comment.get("body", "")):
+                return comment
+        return self.post_comment(number, f"{marker}\n{body}")

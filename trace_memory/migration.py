@@ -24,6 +24,10 @@ class ImportRecorder(Protocol):
     def record(self, *, source_name: str, source_checksum: str, imported: int, skipped: int) -> None: ...
 
 
+class MemoryEmbedder(Protocol):
+    def embed(self, text: str) -> object: ...
+
+
 @dataclass(frozen=True)
 class MigrationRunner:
     database: CockroachDatabase
@@ -84,6 +88,7 @@ class LegacyMemoryImporter:
     organization_id: UUID
     repository_id: UUID
     recorder: ImportRecorder | None = None
+    embedder: MemoryEmbedder | None = None
 
     def import_text(self, content: str, *, strict: bool = True,
                     source_name: str = "legacy-memory") -> ImportReport:
@@ -102,6 +107,16 @@ class LegacyMemoryImporter:
         imported = 0
         skipped = len(errors)
         for memory in parsed:
+            if memory.status is MemoryStatus.ACTIVE and self.embedder is not None:
+                result = self.embedder.embed(
+                    f"{memory.decision}\n{memory.rationale}\n{memory.future_implication}"
+                )
+                memory = memory.model_copy(update={
+                    "embedding": getattr(result, "values"),
+                    "embedding_model": getattr(result, "model_id"),
+                    "embedding_version": getattr(result, "version"),
+                    "embedded_at": getattr(result, "embedded_at"),
+                })
             created = self.sink.create(memory)
             if created is False:
                 skipped += 1
