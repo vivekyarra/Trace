@@ -19,7 +19,7 @@ This is evidence, not an architecture claim. A capability marked **NOT VERIFIED*
 | `EXPLAIN` | **VERIFIED, negative result** | The tested three-row query plans a primary-key full scan, not either vector index. See `docs/evidence/vector-explain.txt`. Do **not** claim accelerated vector retrieval until a realistic corpus and plan demonstrate index selection. |
 | Managed MCP configuration | **VERIFIED** | Cloud Console generated Codex configuration for `https://cockroachlabs.cloud/mcp` with header `mcp-cluster-id: 9727d881-7fa9-4e9c-9e57-437e1afad9b7`; the same configuration is installed in the local Codex client. |
 | Managed MCP transport and OAuth discovery | **VERIFIED** | A live unauthenticated `initialize` request reached the endpoint and returned `401` with `WWW-Authenticate: Bearer`, resource metadata at `/.well-known/oauth-protected-resource/mcp`, and supported scopes `mcp:read`, `mcp:write`. This proves the managed endpoint and its authorization server are live. |
-| Managed MCP read-only tool call | **PENDING INTERACTIVE CONSENT** | `codex mcp login cockroachdb-cloud` requires a local browser callback to complete OAuth consent. The next interactive Codex session must select **read-only** and invoke a non-mutating tool. No read-only MCP access is claimed yet. |
+| Managed MCP read-only tool call | **VERIFIED** | Codex completed the CockroachDB Cloud OAuth flow with **Read Data** only; Write Data remained unchecked. A live `cockroachdb-cloud/list_databases` MCP call then returned `defaultdb`. |
 | Read-only database access | **VERIFIED** | An independently connected temporary SQL login inherited only `lore_preflight_readonly`: `SELECT count(*)` returned `3`; an `INSERT` failed with `does not have INSERT privilege`. The temporary user and password were removed immediately after the probe. |
 
 ### Test objects
@@ -95,5 +95,4 @@ The working tree is the `vivekyarra/Trace` GitHub repository. `main` is the repo
 
 ## Remaining Phase 0 gates
 
-1. Complete the local `codex mcp login cockroachdb-cloud` browser callback with **read-only** consent and invoke one non-mutating MCP tool. This is the sole unfinished Phase 0 check.
-2. Before claiming vector-index acceleration, rerun `EXPLAIN` against a realistic corpus; the current three-row plan deliberately does not establish that claim.
+1. Before claiming vector-index acceleration, rerun `EXPLAIN` against a realistic corpus; the current three-row plan deliberately does not establish that claim.
