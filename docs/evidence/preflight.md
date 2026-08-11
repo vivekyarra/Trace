@@ -17,8 +17,9 @@ This is evidence, not an architecture claim. A capability marked **NOT VERIFIED*
 | Prefix vector-index syntax | **VERIFIED** | `CREATE VECTOR INDEX lore_preflight_vectors_prefix_idx ON lore_preflight_vectors (organization_id, repository_id, embedding)` succeeded. This is the tested tenant/repository-prefix form for this cluster version. |
 | Representative vector query | **VERIFIED** | A cosine-distance query over three vectors returned IDs `1`, `2`, `3` with distances `0`, `0.006116251198662548`, `1` respectively. |
 | `EXPLAIN` | **VERIFIED, negative result** | The tested three-row query plans a primary-key full scan, not either vector index. See `docs/evidence/vector-explain.txt`. Do **not** claim accelerated vector retrieval until a realistic corpus and plan demonstrate index selection. |
-| Managed MCP connectivity | **NOT VERIFIED** | The Cloud account and cluster are available, but no console-generated MCP client configuration/OAuth read grant was created or exercised. |
-| Read-only database access | **NOT VERIFIED** | The authenticated SQL Shell user can create test tables, so it is not a read-only proof. A dedicated role and separate connection test are still required. |
+| Managed MCP configuration | **VERIFIED** | Cloud Console generated the cluster-scoped OAuth command for `https://cockroachlabs.cloud/mcp` with header `mcp-cluster-id: 9727d881-7fa9-4e9c-9e57-437e1afad9b7`. |
+| Managed MCP authenticated call | **NOT VERIFIED** | This machine has no Claude/MCP client (`claude` is not installed), so the OAuth read-only authorization flow and an MCP tool call were not exercised. |
+| Read-only database access | **PARTIALLY VERIFIED** | Role `lore_preflight_readonly` has only `SELECT` on the isolated preflight table and was granted to SQL user `yarra`. Cloud SQL Shell blocks `SET ROLE` as a disallowed statement type, so an independent role login must still prove `SELECT` succeeds and writes fail. |
 
 ### Test objects
 
@@ -32,6 +33,18 @@ lore_preflight_vectors_prefix_idx
 
 They contain only three synthetic vectors and no application or personal data. They may be dropped after durable migration tests replace them.
 
+### Managed MCP configuration
+
+The Cloud Console generated this client command. It contains a public endpoint and cluster ID, not a secret:
+
+```bash
+claude mcp add cockroachdb-cloud https://cockroachlabs.cloud/mcp \
+  --transport http \
+  --header "mcp-cluster-id: 9727d881-7fa9-4e9c-9e57-437e1afad9b7"
+```
+
+The required next verification is to authenticate with **read-only** consent, then invoke a non-mutating MCP tool such as schema listing or `EXPLAIN`.
+
 ## AWS
 
 | Check | Result | Observed evidence |
@@ -39,7 +52,7 @@ They contain only three synthetic vectors and no application or personal data. T
 | Selected region | **VERIFIED** | AWS Console region is Asia Pacific (Mumbai), `ap-south-1`, matching the CockroachDB cluster provider region. |
 | Titan embeddings | **VERIFIED** | CloudShell invoked `amazon.titan-embed-text-v2:0` with `dimensions: 1024` and `normalize: true`. The response contained `embedding_length: 1024` and `inputTextTokenCount: 6`. |
 | Reasoning model | **VERIFIED** | CloudShell invoked `global.anthropic.claude-sonnet-4-5-20250929-v1:0` through Bedrock and returned `LORE preflight OK`. Direct on-demand model invocation was rejected because this model requires an inference profile; the global profile is the verified configuration value. |
-| Lambda runtime compatibility | **NOT VERIFIED** | No Lambda function/package has been selected or deployed. Runtime compatibility must be tested against the implementation artifact before deployment claims are made. |
+| Lambda runtime compatibility | **NOT VERIFIED** | The existing CLI declares Python `>=3.10`, so `python3.12` is compatible at the declared-language level. No Lambda function/package has been selected or deployed, so runtime compatibility remains unproven. |
 
 ### Verified invocation commands
 
