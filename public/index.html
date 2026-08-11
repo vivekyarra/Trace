@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LORE — Institutional Memory Dashboard</title>
+<style>
+:root {
+  --bg: #1a1a2e;
+  --card-bg: #16213e;
+  --accent: #0f3460;
+  --highlight: #e94560;
+  --text: #e0e0e0;
+  --text-muted: #8a8a9a;
+  --green: #00b894;
+  --yellow: #fdcb6e;
+  --red: #e94560;
+  --purple: #6c5ce7;
+  --cyan: #00cec9;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+}
+.container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+header {
+  text-align: center;
+  padding: 3rem 1rem 2rem;
+  background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 60%, #e94560 100%);
+  border-bottom: 3px solid var(--highlight);
+  margin-bottom: 2rem;
+}
+header h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: linear-gradient(90deg, #e94560, #00cec9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+header .subtitle { color: var(--text-muted); font-size: 1.1rem; margin-top: 0.25rem; }
+header .timestamp { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem; }
+section {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+section h2 {
+  margin-top: 0;
+  font-size: 1.4rem;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0.5rem;
+  color: #fff;
+}
+.card-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.card {
+  flex: 1 1 140px;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 1.2rem 1rem;
+  text-align: center;
+  min-width: 130px;
+  transition: transform 0.15s;
+}
+.card:hover { transform: translateY(-3px); }
+.card-value { font-size: 2rem; font-weight: 700; color: #fff; }
+.card-label { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.92rem;
+}
+th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); }
+th { background: var(--accent); color: #fff; font-weight: 600; position: sticky; top: 0; }
+tr:hover { background: rgba(255,255,255,0.03); }
+.summary-row { background: var(--accent); font-weight: 600; }
+code { background: rgba(255,255,255,0.08); padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
+pre.examples {
+  background: rgba(0,0,0,0.3);
+  padding: 0.8rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  overflow-x: auto;
+  border-left: 3px solid var(--purple);
+}
+.badge {
+  display: inline-block;
+  padding: 0.15em 0.55em;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.badge-red { background: var(--red); color: #fff; }
+.badge-yellow { background: var(--yellow); color: #222; }
+.badge-status-active { background: var(--green); color: #fff; }
+.badge-status-superseded { background: var(--yellow); color: #222; }
+.badge-status-overridden { background: #e17055; color: #fff; }
+.muted { color: var(--text-muted); font-style: italic; }
+/* Memory detail cards */
+.memory-card {
+  background: var(--bg);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  border-left: 4px solid var(--accent);
+  overflow: hidden;
+}
+.memory-card.active { border-left-color: var(--green); }
+.memory-card.superseded { border-left-color: var(--yellow); }
+.memory-card.overridden { border-left-color: #e17055; }
+.memory-card summary {
+  cursor: pointer;
+  padding: 0.8rem 1.2rem;
+  font-weight: 600;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.memory-card summary::-webkit-details-marker { display: none; }
+.memory-card summary::before {
+  content: "\25B6";
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+  color: var(--text-muted);
+}
+.memory-card[open] summary::before { transform: rotate(90deg); }
+.memory-body { padding: 0.5rem 1.2rem 1rem; }
+.detail-field { padding: 0.2rem 0; }
+.field-key { color: var(--cyan); font-weight: 600; }
+/* Mermaid */
+.mermaid {
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+.mermaid svg { max-width: 100%; }
+@media (max-width: 700px) {
+  header h1 { font-size: 1.6rem; }
+  .card { flex: 1 1 100%; }
+  section { padding: 1rem; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>LORE</h1>
+  <div class="subtitle">Living Organisational Record Engine &mdash; Institutional Memory Dashboard</div>
+  <div class="timestamp">Generated 2026-03-25 08:22:07</div>
+</header>
+<div class="container">
+<section><h2>Summary</h2><div class="card-row"><div class="card" style="border-top:4px solid #0f3460"><div class="card-value">4</div><div class="card-label">Total Memories</div></div><div class="card" style="border-top:4px solid #00b894"><div class="card-value">3</div><div class="card-label">Active</div></div><div class="card" style="border-top:4px solid #fdcb6e"><div class="card-value">1</div><div class="card-label">Superseded</div></div><div class="card" style="border-top:4px solid #e17055"><div class="card-value">0</div><div class="card-label">Overridden</div></div><div class="card" style="border-top:4px solid #e94560"><div class="card-value">2</div><div class="card-label">Security Decisions</div></div><div class="card" style="border-top:4px solid #6c5ce7"><div class="card-value">6</div><div class="card-label">Files Governed</div></div><div class="card" style="border-top:4px solid #00cec9"><div class="card-value">+1150 kWh/mo</div><div class="card-label">Net Carbon Impact</div></div><div class="card" style="border-top:4px solid #a29bfe"><div class="card-value">2</div><div class="card-label">Pattern Rules</div></div></div></section>
+<section><h2>Decision Graph</h2><div class="mermaid">
+graph LR
+  M1["#001: Use fixed retry intervals instead of exponential b"]
+  M2["#002: TTL-based cache invalidation with 15-minute window"]
+  style M2 stroke:#e94560,stroke-width:3px
+  M3["#003: Rotate tokens every 24h with 1h overlap window"]
+  style M3 stroke:#e94560,stroke-width:3px,stroke-dasharray:5 5
+  M4["#004: Use pgbouncer with transaction-level pooling (max "]
+  M1 -.->|blocks| M3
+  M1 --> M3
+</div></section>
+<section><h2>Carbon Impact</h2><table><thead><tr><th>ID</th><th>Decision</th><th>Impact</th></tr></thead><tbody><tr><td>#001</td><td>Use fixed retry intervals instead of exponential backoff</td><td style="color:#00b894">~300 kWh/month saved</td></tr><tr><td>#002</td><td>TTL-based cache invalidation with 15-minute windows</td><td style="color:#00b894">~200 kWh/month saved</td></tr><tr><td>#003</td><td>Rotate tokens every 24h with 1h overlap window</td><td style="color:#00b894">~150 kWh/month saved</td></tr><tr><td>#004</td><td>Use pgbouncer with transaction-level pooling (max 50 connections)</td><td style="color:#00b894">~500 kWh/month saved</td></tr><tr class="summary-row"><td colspan="2"><strong>Totals</strong></td><td><span style="color:#00b894">Savings: 1150 kWh</span> &nbsp;|&nbsp; <span style="color:#e94560">Costs: 0 kWh</span> &nbsp;|&nbsp; Net: +1150 kWh &nbsp;|&nbsp; CO2: 460.0 kg/mo &nbsp;|&nbsp; Trees: 250.9/yr</td></tr></tbody></table></section>
+<section><h2>File Coverage Map</h2><table><thead><tr><th>File Path</th><th>Governing Memories</th><th>Security</th><th>Status</th></tr></thead><tbody><tr><td><code>src/api/auth.py</code></td><td>#001, #002, #003</td><td><span class="badge badge-red">SEC</span></td><td>Active, Superseded</td></tr><tr><td><code>src/api/retry.py</code></td><td>#001</td><td></td><td>Active</td></tr><tr><td><code>src/auth/tokens.py</code></td><td>#003</td><td><span class="badge badge-red">SEC</span></td><td>Superseded</td></tr><tr><td><code>src/cache/redis.py</code></td><td>#002</td><td><span class="badge badge-red">SEC</span></td><td>Active</td></tr><tr><td><code>src/db/config.py</code></td><td>#004</td><td></td><td>Active</td></tr><tr><td><code>src/db/pool.py</code></td><td>#004</td><td></td><td>Active</td></tr></tbody></table></section>
+<section><h2>Security Inventory</h2><table><thead><tr><th>ID</th><th>Decision</th><th>Decided By</th><th>Date</th><th>Age</th><th>Status</th></tr></thead><tbody><tr><td>#002</td><td>TTL-based cache invalidation with 15-minute windows</td><td>@carol</td><td>2026-02-10</td><td>43d</td><td>Active</td></tr><tr><td>#003</td><td>Rotate tokens every 24h with 1h overlap window</td><td>@alice</td><td>2025-06-01</td><td>297d <span class="badge badge-yellow">STALE</span></td><td>Superseded</td></tr></tbody></table></section>
+<section><h2>Code Pattern Rules</h2><table><thead><tr><th>ID</th><th>Rule</th><th>Anti-pattern</th><th>Language</th><th>Established By</th></tr></thead><tbody><tr><td>P#001</td><td>Use X | None instead of Optional[X]</td><td><code>typing.Optional[X]</code></td><td>python</td><td>@alice</td></tr><tr><td colspan="5"><pre class="examples">Bad:  def get_user(id: int) -&gt; Optional[User]:
+Good: def get_user(id: int) -&gt; User | None:</pre></td></tr><tr><td>P#002</td><td>Use structlog with bound loggers instead of stdlib logging</td><td><code>import logging; logger = logging.getLogger()</code></td><td>python</td><td>@carol, @bob</td></tr><tr><td colspan="5"><pre class="examples">Bad:  logger.info(f&quot;User {user_id} logged in from {ip}&quot;)
+Good: log.info(&quot;user_login&quot;, user_id=user_id, ip=ip)</pre></td></tr></tbody></table></section>
+<section><h2>Memory Details</h2><details class="memory-card active"><summary>#001 &mdash; Use fixed retry intervals instead of exponential backoff <span class="badge badge-status-active">Active</span></summary><div class="memory-body"><div class="detail-field"><span class="field-key">Source MR:</span> !42 — Add retry logic</div><div class="detail-field"><span class="field-key">Date:</span> 2026-01-15</div><div class="detail-field"><span class="field-key">Governs files:</span> src/api/auth.py, src/api/retry.py</div><div class="detail-field"><span class="field-key">Decision:</span> Use fixed retry intervals instead of exponential backoff</div><div class="detail-field"><span class="field-key">Rejected:</span> Exponential backoff</div><div class="detail-field"><span class="field-key">Reason:</span> Thundering herd at 1000+ concurrent requests; fixed intervals spread load evenly</div><div class="detail-field"><span class="field-key">Future implication:</span> No exponential backoff in retry logic; revisit if traffic patterns change</div><div class="detail-field"><span class="field-key">Decided by:</span> @alice, @bob</div><div class="detail-field"><span class="field-key">Confidence:</span> HIGH</div><div class="detail-field"><span class="field-key">Status:</span> Active</div><div class="detail-field"><span class="field-key">Carbon impact:</span> ~300 kWh/month saved</div><div class="detail-field"><span class="field-key">Incident type:</span> retry</div><div class="detail-field"><span class="field-key">Depends on:</span> N/A</div><div class="detail-field"><span class="field-key">Blocks:</span> Memory #003</div><div class="detail-field"><span class="field-key">Source type:</span> discussion</div><div class="detail-field"><span class="field-key">Security relevant:</span> no</div></div></details><details class="memory-card active"><summary>#002 &mdash; TTL-based cache invalidation with 15-minute windows <span class="badge badge-status-active">Active</span></summary><div class="memory-body"><div class="detail-field"><span class="field-key">Source MR:</span> !55 — Cache invalidation strategy</div><div class="detail-field"><span class="field-key">Date:</span> 2026-02-10</div><div class="detail-field"><span class="field-key">Governs files:</span> src/api/auth.py, src/cache/redis.py</div><div class="detail-field"><span class="field-key">Decision:</span> TTL-based cache invalidation with 15-minute windows</div><div class="detail-field"><span class="field-key">Rejected:</span> Event-driven invalidation</div><div class="detail-field"><span class="field-key">Reason:</span> Simplicity over complexity for current scale; event bus not yet available</div><div class="detail-field"><span class="field-key">Future implication:</span> Must revisit if event bus is adopted</div><div class="detail-field"><span class="field-key">Decided by:</span> @carol</div><div class="detail-field"><span class="field-key">Confidence:</span> MEDIUM</div><div class="detail-field"><span class="field-key">Status:</span> Active</div><div class="detail-field"><span class="field-key">Carbon impact:</span> ~200 kWh/month saved</div><div class="detail-field"><span class="field-key">Incident type:</span> cache</div><div class="detail-field"><span class="field-key">Depends on:</span> N/A</div><div class="detail-field"><span class="field-key">Blocks:</span> N/A</div><div class="detail-field"><span class="field-key">Source type:</span> code</div><div class="detail-field"><span class="field-key">Security relevant:</span> yes</div></div></details><details class="memory-card active"><summary>#004 &mdash; Use pgbouncer with transaction-level pooling (max 50 connections) <span class="badge badge-status-active">Active</span></summary><div class="memory-body"><div class="detail-field"><span class="field-key">Source MR:</span> !78 — Database connection pooling</div><div class="detail-field"><span class="field-key">Date:</span> 2026-03-15</div><div class="detail-field"><span class="field-key">Governs files:</span> src/db/pool.py, src/db/config.py</div><div class="detail-field"><span class="field-key">Decision:</span> Use pgbouncer with transaction-level pooling (max 50 connections)</div><div class="detail-field"><span class="field-key">Rejected:</span> Session-level pooling</div><div class="detail-field"><span class="field-key">Reason:</span> Transaction-level reduces idle connections by 80%</div><div class="detail-field"><span class="field-key">Future implication:</span> Long-running transactions must be avoided or use dedicated connections</div><div class="detail-field"><span class="field-key">Decided by:</span> @dave, @alice</div><div class="detail-field"><span class="field-key">Confidence:</span> HIGH</div><div class="detail-field"><span class="field-key">Status:</span> Active</div><div class="detail-field"><span class="field-key">Carbon impact:</span> ~500 kWh/month saved</div><div class="detail-field"><span class="field-key">Incident type:</span> performance</div><div class="detail-field"><span class="field-key">Depends on:</span> N/A</div><div class="detail-field"><span class="field-key">Blocks:</span> N/A</div><div class="detail-field"><span class="field-key">Source type:</span> discussion</div><div class="detail-field"><span class="field-key">Security relevant:</span> no</div></div></details><details class="memory-card superseded"><summary>#003 &mdash; Rotate tokens every 24h with 1h overlap window <span class="badge badge-status-superseded">Superseded</span></summary><div class="memory-body"><div class="detail-field"><span class="field-key">Source MR:</span> !60 — Auth token rotation</div><div class="detail-field"><span class="field-key">Date:</span> 2025-06-01</div><div class="detail-field"><span class="field-key">Governs files:</span> src/api/auth.py, src/auth/tokens.py</div><div class="detail-field"><span class="field-key">Decision:</span> Rotate tokens every 24h with 1h overlap window</div><div class="detail-field"><span class="field-key">Rejected:</span> 1h rotation (too disruptive)</div><div class="detail-field"><span class="field-key">Reason:</span> Balance between security and UX; 24h aligns with session policy</div><div class="detail-field"><span class="field-key">Future implication:</span> Token store must handle overlap window; monitor for replay attacks</div><div class="detail-field"><span class="field-key">Decided by:</span> @alice</div><div class="detail-field"><span class="field-key">Confidence:</span> HIGH</div><div class="detail-field"><span class="field-key">Status:</span> Superseded</div><div class="detail-field"><span class="field-key">Carbon impact:</span> ~150 kWh/month saved</div><div class="detail-field"><span class="field-key">Incident type:</span> auth</div><div class="detail-field"><span class="field-key">Depends on:</span> Memory #001</div><div class="detail-field"><span class="field-key">Blocks:</span> N/A</div><div class="detail-field"><span class="field-key">Source type:</span> both</div><div class="detail-field"><span class="field-key">Security relevant:</span> yes</div></div></details></section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'dark',
+  themeVariables: {
+    primaryColor: '#0f3460',
+    primaryTextColor: '#e0e0e0',
+    primaryBorderColor: '#e94560',
+    lineColor: '#00cec9',
+    secondaryColor: '#16213e',
+    tertiaryColor: '#1a1a2e'
+  }
+});
+</script>
+</body>
+</html>

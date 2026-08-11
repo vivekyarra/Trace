@@ -1,0 +1,97 @@
+LORE Memory #001
+Source MR: !42 — Add retry logic
+Date: 2026-01-15
+Governs files: src/api/auth.py, src/api/retry.py
+Decision: Use fixed retry intervals instead of exponential backoff
+Rejected: Exponential backoff
+Reason: Thundering herd at 1000+ concurrent requests; fixed intervals spread load evenly
+Future implication: No exponential backoff in retry logic; revisit if traffic patterns change
+Decided by: @alice, @bob
+Confidence: HIGH
+Status: Active
+Carbon impact: ~300 kWh/month saved
+Incident type: retry
+Depends on: N/A
+Blocks: Memory #003
+Source type: discussion
+Security relevant: no
+
+LORE Memory #002
+Source MR: !55 — Cache invalidation strategy
+Date: 2026-02-10
+Governs files: src/api/auth.py, src/cache/redis.py
+Decision: TTL-based cache invalidation with 15-minute windows
+Rejected: Event-driven invalidation
+Reason: Simplicity over complexity for current scale; event bus not yet available
+Future implication: Must revisit if event bus is adopted
+Decided by: @carol
+Confidence: MEDIUM
+Status: Active
+Carbon impact: ~200 kWh/month saved
+Incident type: cache
+Depends on: N/A
+Blocks: N/A
+Source type: code
+Security relevant: yes
+
+LORE Memory #003
+Source MR: !60 — Auth token rotation
+Date: 2025-06-01
+Governs files: src/api/auth.py, src/auth/tokens.py
+Decision: Rotate tokens every 24h with 1h overlap window
+Rejected: 1h rotation (too disruptive)
+Reason: Balance between security and UX; 24h aligns with session policy
+Future implication: Token store must handle overlap window; monitor for replay attacks
+Decided by: @alice
+Confidence: HIGH
+Status: Superseded
+Carbon impact: ~150 kWh/month saved
+Incident type: auth
+Depends on: Memory #001
+Blocks: N/A
+Source type: both
+Security relevant: yes
+
+LORE Memory #004
+Source MR: !78 — Database connection pooling
+Date: 2026-03-15
+Governs files: src/db/pool.py, src/db/config.py
+Decision: Use pgbouncer with transaction-level pooling (max 50 connections)
+Rejected: Session-level pooling
+Reason: Transaction-level reduces idle connections by 80%
+Future implication: Long-running transactions must be avoided or use dedicated connections
+Decided by: @dave, @alice
+Confidence: HIGH
+Status: Active
+Carbon impact: ~500 kWh/month saved
+Incident type: performance
+Depends on: N/A
+Blocks: N/A
+Source type: discussion
+Security relevant: no
+
+LORE Pattern #001
+Source MR: !42 — Modernize type hints
+Date: 2026-01-20
+Rule: Use X | None instead of Optional[X]
+Anti-pattern: typing.Optional[X]
+Language: python
+Reason: Optional is soft-deprecated in Python 3.10+; union syntax is clearer
+Established by: @alice
+Status: Active
+Examples:
+  Bad:  def get_user(id: int) -> Optional[User]:
+  Good: def get_user(id: int) -> User | None:
+
+LORE Pattern #002
+Source MR: !65 — Enforce structured logging
+Date: 2026-02-28
+Rule: Use structlog with bound loggers instead of stdlib logging
+Anti-pattern: import logging; logger = logging.getLogger()
+Language: python
+Reason: Structured logs enable automated parsing in Grafana Loki pipeline
+Established by: @carol, @bob
+Status: Active
+Examples:
+  Bad:  logger.info(f"User {user_id} logged in from {ip}")
+  Good: log.info("user_login", user_id=user_id, ip=ip)

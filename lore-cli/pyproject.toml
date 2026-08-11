@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lore-cli"
+version = "1.0.0"
+description = "CLI for LORE — Living Organizational Record Engine. Syncs, validates, and reports on architectural decision memories stored in GitLab."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "LORE Team"},
+]
+dependencies = [
+    "python-gitlab>=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[project.scripts]
+lore = "lore_cli.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["lore_cli*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

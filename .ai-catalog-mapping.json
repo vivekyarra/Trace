@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "agents": {
+    "agents/lore-ask.yml": {
+      "catalog_id": "gid://gitlab/Ai::Catalog::Item/1006465",
+      "name": "LORE Ask",
+      "created_at": "2026-03-23T11:07:44.099Z",
+      "item_consumers": {
+        "group": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5589432"
+        },
+        "project": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5589433"
+        }
+      },
+      "latest_sync": {
+        "git_tag": "v4.0.0",
+        "catalog_version": "1.1.0",
+        "synced_at": "2026-03-24T07:45:07.842Z",
+        "definition_hash": "4f7ae0520ee53e9c"
+      }
+    },
+    "agents/lore-migrate.yml": {
+      "catalog_id": "gid://gitlab/Ai::Catalog::Item/1007030",
+      "name": "LORE Migrate",
+      "created_at": "2026-03-25T05:55:34.716Z",
+      "item_consumers": {
+        "group": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5674655"
+        },
+        "project": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5674656"
+        }
+      },
+      "latest_sync": {
+        "git_tag": "v5.0.0",
+        "catalog_version": "1.0.0",
+        "synced_at": "2026-03-25T05:55:34.716Z",
+        "definition_hash": "a89820f2a031cc37"
+      }
+    }
+  },
+  "flows": {
+    "flows/flow.yml": {
+      "catalog_id": "gid://gitlab/Ai::Catalog::Item/1005843",
+      "name": "LORE — Living Organisational Record Engine",
+      "created_at": "2026-03-21T07:10:22.710Z",
+      "item_consumers": {
+        "group": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5582930"
+        },
+        "project": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5582931"
+        }
+      },
+      "latest_sync": {
+        "git_tag": "v5.0.0",
+        "catalog_version": "1.4.0",
+        "synced_at": "2026-03-25T05:55:35.566Z",
+        "definition_hash": "ce41651290131c0d"
+      }
+    }
+  }
+}

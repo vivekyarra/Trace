@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<style>
+  body { background: #1a1a2e; margin: 40px; font-family: system-ui; }
+  h2 { color: #e94560; text-align: center; font-size: 28px; margin-bottom: 30px; }
+  .mermaid { background: #16213e; border-radius: 12px; padding: 30px; }
+</style>
+</head>
+<body>
+<h2>LORE — Multi-Agent Router Architecture</h2>
+<div class="mermaid">
+graph TD
+    E["🔔 GitLab Event<br/>(issue, MR, merge, mention)"] --> TR["🧠 Triage Router<br/>classifies context, dispatches"]
+
+    TR -->|"issue created"| SF["🔮 SPECFORGE<br/>Pre-mortem + Spec"]
+    TR -->|"open MR"| GK["🛡️ GUARDKEEPER<br/>5-Layer MR Review"]
+    TR -->|"lore: command"| RH["🔄 REPLY_HANDLER<br/>Memory Evolution"]
+    TR -->|"merged MR"| LK["📝 LOREKEEPER<br/>Decision + Pattern Extraction"]
+    TR -->|"health/audit"| LC["📊 LORECAST<br/>Health + Carbon + Graph"]
+    TR -->|"onboard"| OB["👋 ONBOARDING<br/>New Member Briefing"]
+    TR -->|"commit/push"| CK["📋 COMMITKEEPER<br/>Commit Ledger"]
+
+    SA1["💬 LORE Ask<br/>@mention agent"] -.->|"standalone"| WIKI
+    SA2["📦 LORE Migrate<br/>@mention agent"] -.->|"standalone"| WIKI
+
+    SF --> WIKI["📚 Wiki Memory<br/>LORE-INDEX + LORE-MEMORY pages"]
+    GK --> WIKI
+    RH --> WIKI
+    LK --> WIKI
+    LK --> MB["📋 Memory Bank Issue<br/>+ Pattern Rules + Changelog"]
+    LC --> WIKI
+    OB --> WIKI
+
+    GK -->|"Layer 1"| L1["Memory Conflicts"]
+    GK -->|"Layer 2"| L2["Promise Verification"]
+    GK -->|"Layer 3"| L3["Security Sentinel"]
+    GK -->|"Layer 4"| L4["Code Intelligence"]
+    GK -->|"Layer 5"| L5["Pattern Enforcement"]
+
+    CLI["🔧 lore-cli<br/>sync · validate · stats · dashboard"] --> WIKI
+    CLI --> MB
+    CI["⚙️ GitLab CI/CD<br/>test · sync · catalog · pages"] --> CLI
+
+    style TR fill:#e94560,color:#fff,stroke:none
+    style SF fill:#0f3460,color:#fff,stroke:none
+    style GK fill:#0f3460,color:#fff,stroke:none
+    style RH fill:#0f3460,color:#fff,stroke:none
+    style LK fill:#0f3460,color:#fff,stroke:none
+    style LC fill:#0f3460,color:#fff,stroke:none
+    style OB fill:#0f3460,color:#fff,stroke:none
+    style CK fill:#0f3460,color:#fff,stroke:none
+    style SA1 fill:#533483,color:#fff,stroke:none
+    style SA2 fill:#533483,color:#fff,stroke:none
+    style WIKI fill:#1a5276,color:#fff,stroke:none
+    style MB fill:#1a5276,color:#fff,stroke:none
+    style CLI fill:#1e8449,color:#fff,stroke:none
+    style CI fill:#1e8449,color:#fff,stroke:none
+    style L1 fill:#7d3c98,color:#fff,stroke:none
+    style L2 fill:#7d3c98,color:#fff,stroke:none
+    style L3 fill:#7d3c98,color:#fff,stroke:none
+    style L4 fill:#7d3c98,color:#fff,stroke:none
+    style L5 fill:#7d3c98,color:#fff,stroke:none
+    style E fill:#e94560,color:#fff,stroke:none
+</div>
+<script>mermaid.initialize({theme: 'dark', themeVariables: {fontSize: '14px'}});</script>
+
+<h2 style="margin-top:50px;">GUARDKEEPER — 5-Layer Analysis</h2>
+<div class="mermaid">
+graph LR
+    MR["MR Opened"] --> G["🛡️ GUARDKEEPER"]
+    G --> L1["Layer 1<br/>Memory Conflicts<br/>wiki decisions vs diff"]
+    G --> L2["Layer 2<br/>Promise Check<br/>issue claims vs code"]
+    G --> L3["Layer 3<br/>Security Sentinel<br/>auth, crypto, injection"]
+    G --> L4["Layer 4<br/>Code Intelligence<br/>deps, patterns, drift"]
+    G --> L5["Layer 5<br/>Pattern Enforcement<br/>reviewer rules vs diff"]
+    L1 --> OUT["ONE comment<br/>with all findings"]
+    L2 --> OUT
+    L3 --> OUT
+    L4 --> OUT
+    L5 --> OUT
+
+    style MR fill:#e94560,color:#fff,stroke:none
+    style G fill:#0f3460,color:#fff,stroke:none
+    style L1 fill:#7d3c98,color:#fff,stroke:none
+    style L2 fill:#7d3c98,color:#fff,stroke:none
+    style L3 fill:#7d3c98,color:#fff,stroke:none
+    style L4 fill:#7d3c98,color:#fff,stroke:none
+    style L5 fill:#7d3c98,color:#fff,stroke:none
+    style OUT fill:#1e8449,color:#fff,stroke:none
+</div>
+
+<h2 style="margin-top:50px;">LORE Lifecycle — From Issue to Onboarding</h2>
+<div class="mermaid">
+graph LR
+    I["📋 Issue Created"] -->|"SPECFORGE"| PM["Pre-mortem<br/>+ Spec"]
+    PM -->|"developer replies"| FU["FOLLOW-UP<br/>Risk Level"]
+    FU -->|"MR opened"| GK["GUARDKEEPER<br/>5-Layer Review"]
+    GK -->|"lore: intentional"| RH["REPLY_HANDLER<br/>Memory Evolves"]
+    RH -->|"MR merged"| LK["LOREKEEPER<br/>Decisions + Patterns<br/>+ Changelog"]
+    LK -->|"on demand"| LC["LORECAST<br/>Health + Carbon"]
+    LC -->|"new member"| OB["ONBOARDING<br/>Full Briefing"]
+
+    style I fill:#e94560,color:#fff,stroke:none
+    style PM fill:#0f3460,color:#fff,stroke:none
+    style FU fill:#0f3460,color:#fff,stroke:none
+    style GK fill:#0f3460,color:#fff,stroke:none
+    style RH fill:#0f3460,color:#fff,stroke:none
+    style LK fill:#0f3460,color:#fff,stroke:none
+    style LC fill:#0f3460,color:#fff,stroke:none
+    style OB fill:#0f3460,color:#fff,stroke:none
+</div>
+</body>
+</html>

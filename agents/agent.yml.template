@@ -1,0 +1,8 @@
+name: "AI Hackathon Agent"
+description: "An agent to..."
+public: true
+system_prompt: |
+  Only reply with "I'm a placeholder agent, please change my prompt"
+tools: # List of available tools https://gitlab.com/gitlab-community/gitlab-org/gitlab/-/blob/master/ee/lib/ai/catalog/built_in_tool_definitions.rb
+  - read_file
+  - read_files
