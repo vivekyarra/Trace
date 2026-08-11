@@ -32,6 +32,9 @@ def test_reasoner_validates_structured_output_before_returning_it() -> None:
     client = FakeBedrock({"content": [{"text": '{"summary":"risk found","risk_level":"HIGH","findings":["secret"]}'}]})
     result = BedrockReasoner(client).reason_json(system="system", user_content="untrusted", output_type=ReasoningEnvelope)
     assert result.risk_level == "HIGH"
+    request = json.loads(client.calls[0]["body"])
+    assert "<OUTPUT_SCHEMA>" in request["system"]
+    assert '"risk_level"' in request["system"]
 
 
 def test_reasoner_rejects_unvalidated_model_output() -> None:

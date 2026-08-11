@@ -78,6 +78,11 @@ class BedrockReasoner:
         )
 
     def reason_json(self, *, system: str, user_content: str, output_type: type[T], max_tokens: int = 800) -> T:
+        schema = json.dumps(output_type.model_json_schema(), separators=(",", ":"), sort_keys=True)
+        constrained_system = (
+            f"{system}\nReturn exactly one JSON object with no markdown or commentary. "
+            f"It must conform to this JSON Schema: <OUTPUT_SCHEMA>{schema}</OUTPUT_SCHEMA>"
+        )
         response = self._client.invoke_model(
             modelId=self.model_id,
             contentType="application/json",
@@ -85,7 +90,7 @@ class BedrockReasoner:
             body=json.dumps({
                 "anthropic_version": "bedrock-2023-05-31",
                 "max_tokens": max_tokens,
-                "system": system,
+                "system": constrained_system,
                 "messages": [{"role": "user", "content": user_content}],
             }),
         )
