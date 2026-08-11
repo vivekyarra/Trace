@@ -20,8 +20,8 @@ Base main SHA: `dd7d40d59b6a66d39c6fbdc212aa4c3dadba7ca7`
 
 | Gate | State | Reason/evidence required |
 |---|---|---|
-| Feature-branch CI | PENDING | Push candidate branch, record exact run URL and SHA |
-| Runtime image build | PENDING CI | Local Docker daemon is unavailable; workflow builds and smoke-tests the image |
+| Feature-branch CI | PASS | SHA `c6df2310aa539e9e3161fa4f08064380dbad5e45`; run `31512451530` completed successfully |
+| Runtime image build | PASS IN CI | The same run built the pinned Python 3.12.13 image and passed `lore-runtime --help` |
 | CockroachDB migration cycle | BLOCKED EXTERNALLY | No `DATABASE_URL` is exposed to this shell; needs fresh and 001→002 live runs |
 | AWS stack deployment/alarm test | BLOCKED EXTERNALLY | SDK credential chain has no credentials; needs stack ID and alarm evidence |
 | Live GitHub→SQS→Bedrock run | BLOCKED EXTERNALLY | Requires deployed endpoints and runtime secrets |
