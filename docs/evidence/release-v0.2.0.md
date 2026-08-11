@@ -20,11 +20,12 @@ Base main SHA: `dd7d40d59b6a66d39c6fbdc212aa4c3dadba7ca7`
 
 | Gate | State | Reason/evidence required |
 |---|---|---|
-| Feature-branch CI | PASS | SHA `c6df2310aa539e9e3161fa4f08064380dbad5e45`; run `31512451530` completed successfully |
-| Runtime image build | PASS IN CI | The same run built the pinned Python 3.12.13 image and passed `lore-runtime --help` |
+| Feature-branch CI | PASS | Final feature SHA `6ffa4d1470264a2390dbe7ca2aa50a5eb67cea34`; run `31512741447` completed successfully |
+| PR gate | PASS | PR #1 was `CLEAN` and `MERGEABLE`; PR run `31512883199` completed successfully |
+| Runtime image build | PASS IN CI | Feature, PR, and main runs built the pinned Python 3.12.13 image and passed `lore-runtime --help` |
 | CockroachDB migration cycle | BLOCKED EXTERNALLY | No `DATABASE_URL` is exposed to this shell; needs fresh and 001→002 live runs |
 | AWS stack deployment/alarm test | BLOCKED EXTERNALLY | SDK credential chain has no credentials; needs stack ID and alarm evidence |
 | Live GitHub→SQS→Bedrock run | BLOCKED EXTERNALLY | Requires deployed endpoints and runtime secrets |
-| Main CI | PENDING | Only after feature CI and PR merge |
+| Main CI | PASS | Merge SHA `fff4e7b03621b6d8d602e8c9d1e52a38efaa420c`; run `31513023031` completed successfully |
 
 No blocked or pending gate is represented as passed. Update this record with immutable URLs/IDs when the corresponding external environment is available.
