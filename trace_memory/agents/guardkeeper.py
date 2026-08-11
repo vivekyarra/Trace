@@ -95,7 +95,7 @@ class Guardkeeper:
             embedding=embedding, limit=20, include_relationships=True,
         )
         ranked = self._ranker.rank(candidates, changed_paths=changed_paths or [])
-        selected, reasons, final_action = self._select(ranked, candidates, diff)
+        selected, reasons, llm_scores, final_action = self._select(ranked, candidates, diff)
         by_display = {str(candidate["display_id"]): candidate for candidate in candidates}
         for memory_id in selected:
             candidate = by_display[memory_id]
@@ -126,6 +126,7 @@ class Guardkeeper:
             retrieval_event_id = self._recorder.record_retrieval(
                 task_id=task_id, query_text=query_text or diff, embedding_model=embedding_model,
                 ranked=ranked, candidates=candidates, selected_ids=selected, reasons=reasons,
+                llm_scores=llm_scores,
                 final_action=final_action, prompt_version=GUARDKEEPER_RERANK_V1.version,
                 model_id=getattr(self._reasoner, "model_id", None),
             )
@@ -133,13 +134,13 @@ class Guardkeeper:
                                  selected_memory_ids=sorted(selected))
 
     def _select(self, ranked: list[RankedCandidate], candidates: list[dict[str, object]],
-                diff: str) -> tuple[set[str], dict[str, str], str]:
+                diff: str) -> tuple[set[str], dict[str, str], dict[str, float], str]:
         allowed = {item.memory_id for item in ranked}
         shortlist = ranked[:10]
         if self._reasoner is None:
             selected = {item.memory_id for item in shortlist if item.pre_rerank_score >= 0.20}
             reasons = {item.memory_id: item.explanation for item in shortlist if item.memory_id in selected}
-            return selected, reasons, "hybrid threshold selection"
+            return selected, reasons, {}, "hybrid threshold selection"
         context = []
         by_display = {str(candidate["display_id"]): candidate for candidate in candidates}
         for item in shortlist:
@@ -165,4 +166,5 @@ class Guardkeeper:
             raise ValueError("Bedrock reranker returned memory IDs outside the CockroachDB candidate set")
         selected = {item.memory_id for item in envelope.selections}
         reasons = {item.memory_id: f"Bedrock={item.score:.2f}; {item.reason}" for item in envelope.selections}
-        return selected, reasons, envelope.final_action
+        scores = {item.memory_id: item.score for item in envelope.selections}
+        return selected, reasons, scores, envelope.final_action

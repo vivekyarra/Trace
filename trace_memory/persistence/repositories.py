@@ -233,7 +233,8 @@ class MemoryRepository:
 
     def record_retrieval(self, *, task_id: UUID, query_text: str, embedding_model: str,
                          ranked: list[RankedCandidate], candidates: list[dict[str, object]],
-                         selected_ids: set[str], reasons: dict[str, str], final_action: str,
+                         selected_ids: set[str], reasons: dict[str, str], llm_scores: dict[str, float],
+                         final_action: str,
                          prompt_version: str | None, model_id: str | None) -> UUID:
         event_id = uuid4()
         by_display = {str(candidate["display_id"]): candidate for candidate in candidates}
@@ -266,7 +267,8 @@ class MemoryRepository:
                        "vector_distance": item.vector_distance, "semantic_score": item.semantic_score,
                        "scope_score": item.scope_score, "confidence_score": item.confidence_score,
                        "security_boost": item.security_boost, "feedback_score": item.feedback_score,
-                       "pre_rerank_score": item.pre_rerank_score, "llm_rerank_score": None,
+                       "pre_rerank_score": item.pre_rerank_score,
+                       "llm_rerank_score": llm_scores.get(item.memory_id),
                        "selected": item.memory_id in selected_ids,
                        "selection_reason": reasons.get(item.memory_id, item.explanation)})
             return event_id

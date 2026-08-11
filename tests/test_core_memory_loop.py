@@ -113,6 +113,7 @@ def test_merge_remember_retrieve_and_cite_source_loop() -> None:
 
     automation({"aggregate_id": str(uuid4()), "payload": {"pull_request_number": 8, "delivery_id": "B"}})
     assert store.retrievals[0]["selected_ids"] == {"TRACE-MEMORY-00701"}
+    assert store.retrievals[0]["llm_scores"] == {"TRACE-MEMORY-00701": 0.97}
     assert store.retrievals[0]["ranked"][0].semantic_score == 0.97
     assert "https://github.com/acme/trace/pull/7" in github.comments[-1][1]
     assert "00000000-0000-0000-0000-000000000123" in github.comments[-1][1]
