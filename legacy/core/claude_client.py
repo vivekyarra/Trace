@@ -1,5 +1,5 @@
 """
-Claude API client wrapper for LORE. All Claude calls go through this module.
+Claude API client wrapper for Trace. All Claude calls go through this module.
 """
 
 import logging
@@ -14,7 +14,7 @@ from config import (
     CLAUDE_TEMPERATURE,
 )
 
-logger = logging.getLogger("lore.claude_client")
+logger = logging.getLogger("trace.claude_client")
 
 
 class ClaudeClient:

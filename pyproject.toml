@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lore-memory"
+name = "trace-memory"
 version = "0.2.0"
-description = "LORE's CockroachDB-backed institutional memory runtime"
+description = "Trace's CockroachDB-backed institutional memory runtime"
 requires-python = ">=3.12"
 dependencies = ["pydantic>=2.8,<3", "sqlalchemy>=2.0,<3"]
 
@@ -15,15 +15,15 @@ cockroach = ["psycopg[binary]>=3.2,<4"]
 test = ["pytest>=9.0.3,<10", "ruff>=0.12,<1"]
 
 [project.scripts]
-lore-runtime = "lore.cli:main"
+trace-runtime = "trace_memory.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["lore", "lore.*"]
-exclude = ["legacy*", "lore-cli*", "tests*"]
+include = ["trace_memory", "trace_memory.*"]
+exclude = ["legacy*", "trace-cli*", "tests*"]
 
 [tool.setuptools.data-files]
-"share/lore/migrations" = ["migrations/*.sql"]
+"share/trace/migrations" = ["migrations/*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,6 +1,6 @@
 """
-SPECFORGE agent: triggered when @lore is mentioned in a GitLab issue. Reads the
-issue, finds relevant LORE memories, and generates a full engineering spec
+SPECFORGE agent: triggered when @trace is mentioned in a GitLab issue. Reads the
+issue, finds relevant Trace memories, and generates a full engineering spec
 posted as a structured comment. Also handles spec approval and MR spec compliance.
 """
 
@@ -8,12 +8,12 @@ import json
 import logging
 import re
 
-from config import LORE_SPEC_SLUG_PREFIX
+from config import TRACE_SPEC_SLUG_PREFIX
 from core.gitlab_client import GitLabClient
 from core.claude_client import ClaudeClient
 from core.memory import MemoryStore
 
-logger = logging.getLogger("lore.specforge")
+logger = logging.getLogger("trace.specforge")
 
 # Stop words for keyword extraction (Step 4).
 _STOP_WORDS = frozenset([
@@ -65,7 +65,7 @@ async def run_specforge(payload: dict) -> None:
         # — Step 3: Post immediate acknowledgement comment (before any heavy work) —
         gitlab.post_issue_comment(
             issue_iid,
-            f"🧠 LORE — SPECFORGE\n\n"
+            f"🧠 Trace — SPECFORGE\n\n"
             f"*@{issue_author} — Analysing your issue and generating an engineering "
             "specification. This will take about 30 seconds...*",
         )
@@ -125,7 +125,7 @@ async def run_specforge(payload: dict) -> None:
         if len(response) <= 100 or "Acceptance Criteria" not in response:
             gitlab.post_issue_comment(
                 issue_iid,
-                "🧠 LORE — SPECFORGE\n\n"
+                "🧠 Trace — SPECFORGE\n\n"
                 "*Spec generation produced an incomplete result. "
                 "Please try again by editing the issue description with more detail.*",
             )
@@ -134,17 +134,17 @@ async def run_specforge(payload: dict) -> None:
         # — Step 8: Post the spec and then the summary comment —
         gitlab.post_issue_comment(issue_iid, response)
 
-        gitlab.add_issue_label(issue_iid, "lore-spec-pending")
+        gitlab.add_issue_label(issue_iid, "trace-spec-pending")
 
         mem_ids_str = "none" if not relevant_memories else ", ".join(
             f"#{m.get('id', '')}" for m in relevant_memories
         )
         gitlab.post_issue_comment(
             issue_iid,
-            f"🧠 LORE — SPECFORGE\n\n"
+            f"🧠 Trace — SPECFORGE\n\n"
             f"✅ Spec generated. {len(relevant_memories)} relevant memories considered.\n\n"
             "**Next step:** Review the spec above, make any edits needed, then reply "
-            "`lore: spec approved` or `approved` to lock this as the implementation contract.\n\n"
+            "`trace: spec approved` or `approved` to lock this as the implementation contract.\n\n"
             f"*Relevant memories: {mem_ids_str}*",
         )
 
@@ -155,7 +155,7 @@ async def run_specforge(payload: dict) -> None:
                 gitlab = GitLabClient()
                 gitlab.post_issue_comment(
                     issue_iid,
-                    "🧠 LORE — SPECFORGE\n\n"
+                    "🧠 Trace — SPECFORGE\n\n"
                     "*An error occurred during spec generation. Check server logs.*",
                 )
             else:
@@ -164,7 +164,7 @@ async def run_specforge(payload: dict) -> None:
                     gitlab = GitLabClient()
                     gitlab.post_issue_comment(
                         int(issue_iid),
-                        "🧠 LORE — SPECFORGE\n\n"
+                        "🧠 Trace — SPECFORGE\n\n"
                         "*An error occurred during spec generation. Check server logs.*",
                     )
         except Exception:
@@ -182,13 +182,13 @@ def _find_spec_comment_body(notes: list[dict]) -> str | None:
 
 async def handle_spec_approval(payload: dict) -> None:
     """
-    When someone replies 'lore: spec approved' or 'approved' on an issue, store the spec
-    in the wiki and set label lore-spec-approved.
+    When someone replies 'trace: spec approved' or 'approved' on an issue, store the spec
+    in the wiki and set label trace-spec-approved.
     """
     issue_iid: int | None = None
     try:
         note_body = (payload.get("object_attributes") or {}).get("note", "").strip().lower()
-        if "lore: spec approved" not in note_body and "approved" != note_body.strip():
+        if "trace: spec approved" not in note_body and "approved" != note_body.strip():
             return
         noteable_type = (payload.get("object_attributes") or {}).get("noteable_type", "")
         if noteable_type != "Issue":
@@ -206,12 +206,12 @@ async def handle_spec_approval(payload: dict) -> None:
         if not spec_body:
             gitlab.post_issue_comment(
                 issue_iid,
-                "🧠 LORE — SPECFORGE\n\n*No prior spec comment found on this issue. "
-                "Mention @lore in the issue description first to generate a spec.*",
+                "🧠 Trace — SPECFORGE\n\n*No prior spec comment found on this issue. "
+                "Mention @trace in the issue description first to generate a spec.*",
             )
             return
 
-        slug = f"{LORE_SPEC_SLUG_PREFIX}{issue_iid}"
+        slug = f"{TRACE_SPEC_SLUG_PREFIX}{issue_iid}"
         existing = gitlab.get_wiki_page(slug)
         if existing is None:
             gitlab.create_wiki_page(slug, slug, spec_body)
@@ -219,15 +219,15 @@ async def handle_spec_approval(payload: dict) -> None:
             gitlab.update_wiki_page(slug, spec_body)
 
         labels = list(gitlab.get_issue_labels(issue_iid))
-        if "lore-spec-pending" in labels:
-            labels.remove("lore-spec-pending")
-        if "lore-spec-approved" not in labels:
-            labels.append("lore-spec-approved")
+        if "trace-spec-pending" in labels:
+            labels.remove("trace-spec-pending")
+        if "trace-spec-approved" not in labels:
+            labels.append("trace-spec-approved")
         gitlab.set_issue_labels(issue_iid, labels)
 
         gitlab.post_issue_comment(
             issue_iid,
-            "🧠 LORE — SPECFORGE\n\n✅ **Spec approved and stored.** This spec will be used to check "
+            "🧠 Trace — SPECFORGE\n\n✅ **Spec approved and stored.** This spec will be used to check "
             "compliance when MRs linked to this issue are opened.",
         )
     except Exception as e:
@@ -237,7 +237,7 @@ async def handle_spec_approval(payload: dict) -> None:
                 gitlab = GitLabClient()
                 gitlab.post_issue_comment(
                     issue_iid,
-                    "🧠 LORE — SPECFORGE\n\n*Failed to store approved spec. Check server logs.*",
+                    "🧠 Trace — SPECFORGE\n\n*Failed to store approved spec. Check server logs.*",
                 )
             except Exception:
                 pass
@@ -261,7 +261,7 @@ async def run_spec_compliance(payload: dict) -> None:
         spec_content: str | None = None
         issue_iid_used: int | None = None
         for iid in linked_issue_iids:
-            slug = f"{LORE_SPEC_SLUG_PREFIX}{iid}"
+            slug = f"{TRACE_SPEC_SLUG_PREFIX}{iid}"
             content = gitlab.get_wiki_page(slug)
             if content and "Acceptance Criteria" in content:
                 spec_content = content
@@ -298,7 +298,7 @@ async def run_spec_compliance(payload: dict) -> None:
         except json.JSONDecodeError:
             gitlab.post_mr_comment(
                 mr_iid,
-                "🧠 LORE — SPECFORGE Compliance\n\n*Compliance check could not parse result.*",
+                "🧠 Trace — SPECFORGE Compliance\n\n*Compliance check could not parse result.*",
             )
             return
 
@@ -308,7 +308,7 @@ async def run_spec_compliance(payload: dict) -> None:
         summary = result.get("summary", "")
 
         parts = [
-            "🧠 LORE — SPECFORGE Compliance",
+            "🧠 Trace — SPECFORGE Compliance",
             "",
             f"*Spec from issue #{issue_iid_used}*",
             "",
@@ -338,7 +338,7 @@ async def run_spec_compliance(payload: dict) -> None:
                 gitlab = GitLabClient()
                 gitlab.post_mr_comment(
                     mr_iid,
-                    "🧠 LORE — SPECFORGE Compliance\n\n*Compliance check failed. Check server logs.*",
+                    "🧠 Trace — SPECFORGE Compliance\n\n*Compliance check failed. Check server logs.*",
                 )
             except Exception:
                 pass

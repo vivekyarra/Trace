@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from lore.runtime.queue import OutboxWorker, SqsPublisher, SqsTaskWorker
+from trace_memory.runtime.queue import OutboxWorker, SqsPublisher, SqsTaskWorker
 
 
 class Queue:

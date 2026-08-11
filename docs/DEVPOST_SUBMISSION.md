@@ -1,4 +1,4 @@
-# Devpost submission — LORE
+# Devpost submission — Trace
 
 ## Tagline
 
@@ -8,11 +8,11 @@ Your codebase remembers why.
 
 The most expensive engineering mistakes are often repeats. A retry strategy was rejected after an outage, an authentication shortcut was prohibited in review, or a library was chosen to avoid a subtle failure—and six months later the reason is gone. ADRs help only when somebody writes them. Review comments help only when somebody can find them.
 
-LORE turns the work a team already does into living, enforceable institutional memory.
+Trace turns the work a team already does into living, enforceable institutional memory.
 
 ## What it does
 
-LORE follows a change from issue to production. On an issue it creates a failure pre-mortem. On a pull request it retrieves relevant historical decisions, checks implementation promises, inspects architectural drift, and always runs a deterministic security sentinel. After merge it extracts durable decisions into CockroachDB, including provenance and lifecycle state. When a decision changes, LORE supersedes it without erasing history.
+Trace follows a change from issue to production. On an issue it creates a failure pre-mortem. On a pull request it retrieves relevant historical decisions, checks implementation promises, inspects architectural drift, and always runs a deterministic security sentinel. After merge it extracts durable decisions into CockroachDB, including provenance and lifecycle state. When a decision changes, Trace supersedes it without erasing history.
 
 The judge console makes the system inspectable: active and security-relevant memories, task outcomes, retrieval traces, pending outbox work, and dead-lettered failures are visible from the canonical database.
 
@@ -27,9 +27,9 @@ The judge console makes the system inspectable: active and security-relevant mem
 
 ## The hard parts
 
-The difficult problem was not generating prose. It was making AI behaviour durable and accountable. A webhook can be repeated. A database transaction can restart. A worker can crash after publishing. A model can return plausible but malformed output. LORE treats each of those as a normal production condition: deterministic keys, transactional outbox state, CockroachDB serialization retries, FIFO deduplication, strict schemas, bounded attempts, and provenance records.
+The difficult problem was not generating prose. It was making AI behaviour durable and accountable. A webhook can be repeated. A database transaction can restart. A worker can crash after publishing. A model can return plausible but malformed output. Trace treats each of those as a normal production condition: deterministic keys, transactional outbox state, CockroachDB serialization retries, FIFO deduplication, strict schemas, bounded attempts, and provenance records.
 
-Hybrid retrieval was another important choice. Vector similarity alone can bury a security decision. LORE combines semantic distance with code scope, confidence, security relevance, and human feedback, then records why each candidate was selected.
+Hybrid retrieval was another important choice. Vector similarity alone can bury a security decision. Trace combines semantic distance with code scope, confidence, security relevance, and human feedback, then records why each candidate was selected.
 
 ## Accomplishments
 
@@ -37,7 +37,7 @@ Hybrid retrieval was another important choice. Vector similarity alone can bury 
 - Real GitHub-to-SQS-to-Bedrock-to-CockroachDB runtime paths.
 - Fail-closed webhook and model boundaries.
 - Read-only MCP and judge/operator views over the same canonical source.
-- Compatibility import for existing LORE wiki memory.
+- Compatibility import for existing Trace wiki memory.
 - Release gates covering the new runtime and the original 43-test CLI compatibility suite.
 
 ## What we learned

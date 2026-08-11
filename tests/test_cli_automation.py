@@ -1,5 +1,5 @@
-from lore.cli import _migrations_directory, parser
-from lore.runtime.automation import _promises
+from trace_memory.cli import _migrations_directory, parser
+from trace_memory.runtime.automation import _promises
 
 
 def test_all_production_processes_are_exposed() -> None:

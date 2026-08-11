@@ -1,7 +1,7 @@
 from uuid import uuid4
 
-from lore.agents.memory_governor import MemoryGovernor
-from lore.domain import ActorType, Memory, MemoryStatus, MemoryType
+from trace_memory.agents.memory_governor import MemoryGovernor
+from trace_memory.domain import ActorType, Memory, MemoryStatus, MemoryType
 
 
 class Repository:
@@ -16,7 +16,7 @@ class Repository:
 
 
 def replacement() -> Memory:
-    return Memory(organization_id=uuid4(), repository_id=uuid4(), display_id="LORE-MEMORY-100",
+    return Memory(organization_id=uuid4(), repository_id=uuid4(), display_id="TRACE-MEMORY-100",
                   memory_type=MemoryType.ARCHITECTURAL_DECISION, title="Use pool", decision="Use pooling",
                   rationale="Avoid exhaustion", future_implication="Reuse connections", confidence=0.9,
                   confidence_basis="incident", status=MemoryStatus.ACTIVE, content_hash="a", semantic_key="pool",

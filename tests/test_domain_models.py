@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from lore.domain import (
+from trace_memory.domain import (
     ActorType,
     Memory,
     MemoryRelationship,
@@ -19,7 +19,7 @@ def make_memory(**overrides: object) -> Memory:
     values: dict[str, object] = {
         "organization_id": uuid4(),
         "repository_id": uuid4(),
-        "display_id": "LORE-MEMORY-001",
+        "display_id": "TRACE-MEMORY-001",
         "memory_type": MemoryType.ARCHITECTURAL_DECISION,
         "title": "Use fixed retry intervals",
         "decision": "Use fixed retry intervals for webhook retries.",
@@ -69,7 +69,7 @@ def test_relationship_cannot_target_itself() -> None:
             source_memory_id=memory_id,
             target_memory_id=memory_id,
             relationship=RelationshipType.RELATED_TO,
-            created_by="lorekeeper",
+            created_by="tracekeeper",
         )
 
 

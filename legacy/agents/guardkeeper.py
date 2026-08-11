@@ -1,6 +1,6 @@
 """
 GUARDKEEPER agent: triggered on MR open or on reply to a GUARDKEEPER comment.
-Checks MR against LORE memories and posts conflict notice or green check;
+Checks MR against Trace memories and posts conflict notice or green check;
 handles intentional/accidental/discuss replies.
 """
 
@@ -13,7 +13,7 @@ from core.gitlab_client import GitLabClient
 from core.claude_client import ClaudeClient
 from core.memory import MemoryStore
 
-logger = logging.getLogger("lore.guardkeeper")
+logger = logging.getLogger("trace.guardkeeper")
 
 
 def _get_memory_by_id(memories: list[dict], memory_id: str) -> dict:
@@ -64,9 +64,9 @@ async def run_guardkeeper(payload: dict, reply_type: str | None = None) -> None:
             if reply_type == "intentional":
                 # — Step 2: Handle "intentional" — extract reasoning and update memories
                 body_lower = (note_body or "").strip().lower()
-                idx = body_lower.find("lore: intentional")
+                idx = body_lower.find("trace: intentional")
                 if idx >= 0:
-                    reasoning = (note_body or "")[idx + len("lore: intentional") :].strip()
+                    reasoning = (note_body or "")[idx + len("trace: intentional") :].strip()
                     reasoning = reasoning.lstrip(" —").lstrip(" -").lstrip()
                 else:
                     reasoning = ""
@@ -90,7 +90,7 @@ async def run_guardkeeper(payload: dict, reply_type: str | None = None) -> None:
 
                 gitlab.post_mr_comment(
                     mr_iid,
-                    f"🧠 LORE — GUARDKEEPER\n\n"
+                    f"🧠 Trace — GUARDKEEPER\n\n"
                     f"Acknowledged @{note_author}. This override has been recorded.\n\n"
                     f"**Your reasoning:** {reasoning}\n\n"
                     f"Institutional memory updated for memory/ies: {', '.join('#' + m for m in conflict_memory_ids) or 'N/A'}. "
@@ -102,12 +102,12 @@ async def run_guardkeeper(payload: dict, reply_type: str | None = None) -> None:
                 # — Step 3: Handle "accidental" —
                 gitlab.post_mr_comment(
                     mr_iid,
-                    "🧠 LORE — GUARDKEEPER\n\n"
+                    "🧠 Trace — GUARDKEEPER\n\n"
                     f"Understood @{note_author}. This conflict appears to be unintentional.\n\n"
                     "**Next step:** Please revise the implementation to align with the existing "
                     "architectural decision before merging.\n\n"
                     "If you believe the original decision should be revisited, reply with "
-                    "`lore: discuss` to loop in the original decision makers.",
+                    "`trace: discuss` to loop in the original decision makers.",
                 )
                 return
 
@@ -126,7 +126,7 @@ async def run_guardkeeper(payload: dict, reply_type: str | None = None) -> None:
 
                 gitlab.post_mr_comment(
                     mr_iid,
-                    f"🧠 LORE — GUARDKEEPER\n\n"
+                    f"🧠 Trace — GUARDKEEPER\n\n"
                     f"Looping in the original decision makers as requested by @{note_author}.\n\n"
                     f"{mention_str}\n\n"
                     "A decision conflict has been flagged on this MR. Your institutional context "
@@ -166,7 +166,7 @@ async def run_guardkeeper(payload: dict, reply_type: str | None = None) -> None:
         if not memories:
             gitlab.post_mr_comment(
                 mr_iid,
-                "✅ LORE — GUARDKEEPER\n\n"
+                "✅ Trace — GUARDKEEPER\n\n"
                 "**0 memories** found for files in this MR. "
                 "No institutional memory to check against yet.\n\n"
                 f"*Files scanned: {', '.join(changed_files)}*",
@@ -211,7 +211,7 @@ async def run_guardkeeper(payload: dict, reply_type: str | None = None) -> None:
             logger.error("GUARDKEEPER: Failed to parse Claude JSON: %s", e, exc_info=True)
             gitlab.post_mr_comment(
                 mr_iid,
-                "🧠 LORE — GUARDKEEPER\n\n*Could not parse conflict analysis. Check server logs.*",
+                "🧠 Trace — GUARDKEEPER\n\n*Could not parse conflict analysis. Check server logs.*",
             )
             return
 
@@ -226,7 +226,7 @@ async def run_guardkeeper(payload: dict, reply_type: str | None = None) -> None:
             clean_files_str = ", ".join(clean_files)
             gitlab.post_mr_comment(
                 mr_iid,
-                f"✅ LORE — GUARDKEEPER\n\n"
+                f"✅ Trace — GUARDKEEPER\n\n"
                 f"**{len(checked_memories)} memories checked. No decision conflicts detected.**\n\n"
                 "This MR is clean against your team's institutional memory.\n\n"
                 f"*Memories checked: {ids_str}*\n"
@@ -237,7 +237,7 @@ async def run_guardkeeper(payload: dict, reply_type: str | None = None) -> None:
         # Build conflict comment with all conflicts
         n = len(conflicts)
         conflict_parts = [
-            "🧠 LORE — GUARDKEEPER — ⚠️ Decision Conflict Detected",
+            "🧠 Trace — GUARDKEEPER — ⚠️ Decision Conflict Detected",
             "",
             f"This MR conflicts with {n} stored architectural decision(s).",
             "",
@@ -262,7 +262,7 @@ async def run_guardkeeper(payload: dict, reply_type: str | None = None) -> None:
             conflict_parts.append(f"**What conflicts:** {conflict_desc}")
             conflict_parts.append(f"**Where:** {code_location}")
             conflict_parts.append("")
-            conflict_parts.append("**LORE's reasoning:**")
+            conflict_parts.append("**Trace's reasoning:**")
             conflict_parts.append(reasoning)
             conflict_parts.append("")
             conflict_parts.append("**The original decision:**")
@@ -278,16 +278,16 @@ async def run_guardkeeper(payload: dict, reply_type: str | None = None) -> None:
 
         conflict_parts.append("**Three paths forward — reply to this comment:**")
         conflict_parts.append("")
-        conflict_parts.append("💬 `lore: intentional — [your reasoning]`")
-        conflict_parts.append("The new approach is deliberate. LORE will update institutional memory with your reasoning.")
+        conflict_parts.append("💬 `trace: intentional — [your reasoning]`")
+        conflict_parts.append("The new approach is deliberate. Trace will update institutional memory with your reasoning.")
         conflict_parts.append("")
-        conflict_parts.append("💬 `lore: accidental`")
+        conflict_parts.append("💬 `trace: accidental`")
         conflict_parts.append("You were unaware of this constraint. Please revise before merging.")
         conflict_parts.append("")
-        conflict_parts.append("💬 `lore: discuss`")
+        conflict_parts.append("💬 `trace: discuss`")
         conflict_parts.append("Loop in the original decision makers before proceeding.")
         conflict_parts.append("")
-        conflict_parts.append(f"*LORE checked {len(checked_memories)} memories across {len(changed_files)} files.*")
+        conflict_parts.append(f"*Trace checked {len(checked_memories)} memories across {len(changed_files)} files.*")
 
         gitlab.post_mr_comment(mr_iid, "\n".join(conflict_parts))
 
@@ -302,7 +302,7 @@ async def run_guardkeeper(payload: dict, reply_type: str | None = None) -> None:
                     gitlab = GitLabClient()
                     gitlab.post_mr_comment(
                         int(mr_iid),
-                        "🧠 LORE — GUARDKEEPER\n\n*An error occurred during conflict analysis. Check server logs.*",
+                        "🧠 Trace — GUARDKEEPER\n\n*An error occurred during conflict analysis. Check server logs.*",
                     )
             except Exception:
                 pass
@@ -311,7 +311,7 @@ async def run_guardkeeper(payload: dict, reply_type: str | None = None) -> None:
                 gitlab = GitLabClient()
                 gitlab.post_mr_comment(
                     mr_iid,
-                    "🧠 LORE — GUARDKEEPER\n\n*An error occurred during conflict analysis. Check server logs.*",
+                    "🧠 Trace — GUARDKEEPER\n\n*An error occurred during conflict analysis. Check server logs.*",
                 )
             except Exception:
                 pass

@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from lore.ai.bedrock import BedrockEmbedder, BedrockReasoner, ReasoningEnvelope
+from trace_memory.ai.bedrock import BedrockEmbedder, BedrockReasoner, ReasoningEnvelope
 
 
 class FakeBedrock:

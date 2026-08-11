@@ -6,7 +6,7 @@ __pycache__
 *.pyc
 .pytest_cache
 legacy
-lore-cli
+trace-cli
 tests
 docs
 public

@@ -1,19 +1,19 @@
 """
-LORE memory store: wiki-backed storage and indexing of architectural decisions.
+Trace memory store: wiki-backed storage and indexing of architectural decisions.
 """
 
 import logging
 import re
 from typing import TYPE_CHECKING
 
-from config import LORE_INDEX_SLUG, MEMORY_SLUG_PREFIX
+from config import TRACE_INDEX_SLUG, MEMORY_SLUG_PREFIX
 
 from .gitlab_client import GitLabClient
 
 if TYPE_CHECKING:
     pass
 
-logger = logging.getLogger("lore.memory")
+logger = logging.getLogger("trace.memory")
 
 
 def _zero_pad_id(memory_id: str) -> str:
@@ -27,7 +27,7 @@ def _zero_pad_id(memory_id: str) -> str:
 
 class MemoryStore:
     """
-    Handles all LORE memory operations using GitLab wiki via GitLabClient.
+    Handles all Trace memory operations using GitLab wiki via GitLabClient.
     """
 
     def __init__(self, gitlab: GitLabClient) -> None:
@@ -57,8 +57,8 @@ class MemoryStore:
         }
         for line in lines:
             line = line.strip()
-            if line.startswith("LORE Memory #"):
-                memory["id"] = line.replace("LORE Memory #", "").strip()
+            if line.startswith("Trace Memory #"):
+                memory["id"] = line.replace("Trace Memory #", "").strip()
             elif line.startswith("Source MR:"):
                 rest = line.replace("Source MR:", "").strip()
                 match = re.match(r"!(\d+)\s*—\s*(.*)", rest)
@@ -89,12 +89,12 @@ class MemoryStore:
 
     def _serialize_memory(self, memory: dict) -> str:
         """
-        Convert a memory dict into the LORE wiki markdown format.
+        Convert a memory dict into the Trace wiki markdown format.
         """
         governs = ", ".join(memory.get("governs_files") or [])
         decided_by = ", ".join(memory.get("decided_by") or [])
         return (
-            f"LORE Memory #{memory.get('id', '')}\n"
+            f"Trace Memory #{memory.get('id', '')}\n"
             f"Source MR: !{memory.get('source_mr_number', '')} — {memory.get('source_mr_title', '')}\n"
             f"Date: {memory.get('date', '')}\n"
             f"Governs files: {governs}\n"
@@ -109,7 +109,7 @@ class MemoryStore:
 
     def save_memory(self, memory: dict) -> str:
         """
-        Save memory to wiki, update LORE-INDEX, and return the page slug.
+        Save memory to wiki, update TRACE-INDEX, and return the page slug.
         """
         try:
             memory_id = str(memory.get("id", "")).strip()
@@ -162,11 +162,11 @@ class MemoryStore:
 
     def get_memories_for_files(self, file_paths: list[str]) -> list[dict]:
         """
-        Read LORE-INDEX, find all memory IDs that govern any of the given file paths,
+        Read TRACE-INDEX, find all memory IDs that govern any of the given file paths,
         fetch and return those memories.
         """
         try:
-            content = self._gitlab.get_wiki_page(LORE_INDEX_SLUG)
+            content = self._gitlab.get_wiki_page(TRACE_INDEX_SLUG)
             if not content or not file_paths:
                 return []
             path_set = set(f.strip() for f in file_paths if f and f.strip())
@@ -190,7 +190,7 @@ class MemoryStore:
             raise RuntimeError(f"Failed to get memories for files: {e}") from e
 
     def _parse_index(self, content: str) -> dict[str, list[str]]:
-        """Parse LORE-INDEX markdown table into dict: file_path -> list of memory ids."""
+        """Parse TRACE-INDEX markdown table into dict: file_path -> list of memory ids."""
         index: dict[str, list[str]] = {}
         lines = content.strip().split("\n")
         for line in lines:
@@ -208,7 +208,7 @@ class MemoryStore:
 
     def get_all_memories(self) -> list[dict]:
         """
-        Fetch and parse every LORE-MEMORY-* wiki page.
+        Fetch and parse every TRACE-MEMORY-* wiki page.
         """
         try:
             slugs = self._gitlab.list_wiki_pages()
@@ -253,29 +253,29 @@ class MemoryStore:
 
     def ensure_index_exists(self) -> None:
         """
-        Create the LORE-INDEX wiki page if it does not exist yet.
+        Create the TRACE-INDEX wiki page if it does not exist yet.
         """
         try:
-            content = self._gitlab.get_wiki_page(LORE_INDEX_SLUG)
+            content = self._gitlab.get_wiki_page(TRACE_INDEX_SLUG)
             if content is not None:
                 return
-            initial = "# LORE Index\n\n| File Path | Memory IDs |\n"
-            self._gitlab.create_wiki_page(LORE_INDEX_SLUG, LORE_INDEX_SLUG, initial)
+            initial = "# Trace Index\n\n| File Path | Memory IDs |\n"
+            self._gitlab.create_wiki_page(TRACE_INDEX_SLUG, TRACE_INDEX_SLUG, initial)
         except RuntimeError:
             raise
         except Exception as e:
-            logger.exception("Failed to ensure LORE-INDEX exists")
+            logger.exception("Failed to ensure TRACE-INDEX exists")
             raise RuntimeError(f"Failed to ensure index exists: {e}") from e
 
     def _update_index(self, memory_id: str, file_paths: list[str]) -> None:
         """
-        Add the memory_id -> file_paths mapping to LORE-INDEX. Merges with existing rows.
+        Add the memory_id -> file_paths mapping to TRACE-INDEX. Merges with existing rows.
         """
         try:
             self.ensure_index_exists()
-            content = self._gitlab.get_wiki_page(LORE_INDEX_SLUG)
+            content = self._gitlab.get_wiki_page(TRACE_INDEX_SLUG)
             if not content:
-                raise RuntimeError("LORE-INDEX missing after ensure_index_exists")
+                raise RuntimeError("TRACE-INDEX missing after ensure_index_exists")
             index = self._parse_index(content)
             pad = _zero_pad_id(memory_id)
             for path in file_paths:
@@ -286,13 +286,13 @@ class MemoryStore:
                     index[path] = []
                 if pad not in index[path]:
                     index[path].append(pad)
-            lines = ["# LORE Index", "", "| File Path | Memory IDs |", "| --- | --- |"]
+            lines = ["# Trace Index", "", "| File Path | Memory IDs |", "| --- | --- |"]
             for path in sorted(index.keys()):
                 ids_str = ", ".join(sorted(index[path]))
                 lines.append(f"| {path} | {ids_str} |")
-            self._gitlab.update_wiki_page(LORE_INDEX_SLUG, "\n".join(lines) + "\n")
+            self._gitlab.update_wiki_page(TRACE_INDEX_SLUG, "\n".join(lines) + "\n")
         except RuntimeError:
             raise
         except Exception as e:
-            logger.exception("Failed to update LORE-INDEX")
+            logger.exception("Failed to update TRACE-INDEX")
             raise RuntimeError(f"Failed to update index: {e}") from e

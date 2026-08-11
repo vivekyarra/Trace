@@ -28,7 +28,7 @@ You will receive:
 1. MR TITLE: the title of the new MR
 2. MR DESCRIPTION: the description of the new MR  
 3. DIFF: the full diff of the new MR
-4. PAST DECISIONS: a list of LORE memories, each with decision, rejected, reason, future_implication, governs_files, memory_id
+4. PAST DECISIONS: a list of Trace memories, each with decision, rejected, reason, future_implication, governs_files, memory_id
 
 ## Output format
 You must respond with a JSON object with exactly these fields:

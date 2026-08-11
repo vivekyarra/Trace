@@ -10,23 +10,23 @@
 </style>
 </head>
 <body>
-<h2>LORE — Multi-Agent Router Architecture</h2>
+<h2>Trace — Multi-Agent Router Architecture</h2>
 <div class="mermaid">
 graph TD
     E["🔔 GitLab Event<br/>(issue, MR, merge, mention)"] --> TR["🧠 Triage Router<br/>classifies context, dispatches"]
 
     TR -->|"issue created"| SF["🔮 SPECFORGE<br/>Pre-mortem + Spec"]
     TR -->|"open MR"| GK["🛡️ GUARDKEEPER<br/>5-Layer MR Review"]
-    TR -->|"lore: command"| RH["🔄 REPLY_HANDLER<br/>Memory Evolution"]
-    TR -->|"merged MR"| LK["📝 LOREKEEPER<br/>Decision + Pattern Extraction"]
-    TR -->|"health/audit"| LC["📊 LORECAST<br/>Health + Carbon + Graph"]
+    TR -->|"trace: command"| RH["🔄 REPLY_HANDLER<br/>Memory Evolution"]
+    TR -->|"merged MR"| LK["📝 Tracekeeper<br/>Decision + Pattern Extraction"]
+    TR -->|"health/audit"| LC["📊 Tracecast<br/>Health + Carbon + Graph"]
     TR -->|"onboard"| OB["👋 ONBOARDING<br/>New Member Briefing"]
     TR -->|"commit/push"| CK["📋 COMMITKEEPER<br/>Commit Ledger"]
 
-    SA1["💬 LORE Ask<br/>@mention agent"] -.->|"standalone"| WIKI
-    SA2["📦 LORE Migrate<br/>@mention agent"] -.->|"standalone"| WIKI
+    SA1["💬 Trace Ask<br/>@mention agent"] -.->|"standalone"| WIKI
+    SA2["📦 Trace Migrate<br/>@mention agent"] -.->|"standalone"| WIKI
 
-    SF --> WIKI["📚 Wiki Memory<br/>LORE-INDEX + LORE-MEMORY pages"]
+    SF --> WIKI["📚 Wiki Memory<br/>TRACE-INDEX + TRACE-MEMORY pages"]
     GK --> WIKI
     RH --> WIKI
     LK --> WIKI
@@ -40,7 +40,7 @@ graph TD
     GK -->|"Layer 4"| L4["Code Intelligence"]
     GK -->|"Layer 5"| L5["Pattern Enforcement"]
 
-    CLI["🔧 lore-cli<br/>sync · validate · stats · dashboard"] --> WIKI
+    CLI["🔧 trace-cli<br/>sync · validate · stats · dashboard"] --> WIKI
     CLI --> MB
     CI["⚙️ GitLab CI/CD<br/>test · sync · catalog · pages"] --> CLI
 
@@ -92,15 +92,15 @@ graph LR
     style OUT fill:#1e8449,color:#fff,stroke:none
 </div>
 
-<h2 style="margin-top:50px;">LORE Lifecycle — From Issue to Onboarding</h2>
+<h2 style="margin-top:50px;">Trace Lifecycle — From Issue to Onboarding</h2>
 <div class="mermaid">
 graph LR
     I["📋 Issue Created"] -->|"SPECFORGE"| PM["Pre-mortem<br/>+ Spec"]
     PM -->|"developer replies"| FU["FOLLOW-UP<br/>Risk Level"]
     FU -->|"MR opened"| GK["GUARDKEEPER<br/>5-Layer Review"]
-    GK -->|"lore: intentional"| RH["REPLY_HANDLER<br/>Memory Evolves"]
-    RH -->|"MR merged"| LK["LOREKEEPER<br/>Decisions + Patterns<br/>+ Changelog"]
-    LK -->|"on demand"| LC["LORECAST<br/>Health + Carbon"]
+    GK -->|"trace: intentional"| RH["REPLY_HANDLER<br/>Memory Evolves"]
+    RH -->|"MR merged"| LK["Tracekeeper<br/>Decisions + Patterns<br/>+ Changelog"]
+    LK -->|"on demand"| LC["Tracecast<br/>Health + Carbon"]
     LC -->|"new member"| OB["ONBOARDING<br/>Full Briefing"]
 
     style I fill:#e94560,color:#fff,stroke:none

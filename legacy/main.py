@@ -6,10 +6,10 @@ from fastapi import FastAPI, Request, HTTPException, Header
 from fastapi.responses import JSONResponse
 
 from config import WEBHOOK_SECRET, PORT
-from agents.lorekeeper import run_lorekeeper
+from agents.tracekeeper import run_tracekeeper
 from agents.guardkeeper import run_guardkeeper
 from agents.specforge import run_specforge, run_spec_compliance, handle_spec_approval
-from agents.lorecast import run_lorecast
+from agents.tracecast import run_tracecast
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,13 +20,13 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("LORE server starting up")
+    logger.info("Trace server starting up")
     yield
-    logger.info("LORE server shutting down")
+    logger.info("Trace server shutting down")
 
 
 app = FastAPI(
-    title="LORE — Living Organisational Record Engine",
+    title="Trace",
     description="Multi-agent GitLab automation for institutional memory",
     version="1.0.0",
     lifespan=lifespan
@@ -43,7 +43,7 @@ def verify_webhook_secret(token: str) -> bool:
 @app.get("/health")
 async def health():
     """Health check endpoint."""
-    return {"status": "ok", "service": "LORE"}
+    return {"status": "ok", "service": "Trace"}
 
 
 @app.post("/webhook")
@@ -68,8 +68,8 @@ async def webhook(
             logger.info("MR action: %s", action)
 
             if action == "merge":
-                logger.info("Routing to LOREKEEPER")
-                await run_lorekeeper(payload)
+                logger.info("Routing to Tracekeeper")
+                await run_tracekeeper(payload)
 
             elif action == "open":
                 logger.info("Routing to GUARDKEEPER and SPECFORGE compliance")
@@ -87,33 +87,33 @@ async def webhook(
             logger.info("Note on %s: %s", noteable_type, note_body[:80])
 
             if noteable_type == "MergeRequest":
-                if "lore: intentional" in note_body:
+                if "trace: intentional" in note_body:
                     logger.info("Routing to GUARDKEEPER reply handler — intentional")
                     await run_guardkeeper(payload, reply_type="intentional")
-                elif "lore: accidental" in note_body:
+                elif "trace: accidental" in note_body:
                     logger.info("Routing to GUARDKEEPER reply handler — accidental")
                     await run_guardkeeper(payload, reply_type="accidental")
-                elif "lore: discuss" in note_body:
+                elif "trace: discuss" in note_body:
                     logger.info("Routing to GUARDKEEPER reply handler — discuss")
                     await run_guardkeeper(payload, reply_type="discuss")
 
             elif noteable_type == "Issue":
-                if "lore: spec approved" in note_body or note_body.strip() == "approved":
+                if "trace: spec approved" in note_body or note_body.strip() == "approved":
                     logger.info("Routing to SPECFORGE spec approval")
                     await handle_spec_approval(payload)
-                if "lore health" in note_body or "@lore health" in note_body:
-                    logger.info("Routing to LORECAST (triggered by @lore health)")
-                    await run_lorecast()
+                if "trace health" in note_body or "@trace health" in note_body:
+                    logger.info("Routing to Tracecast (triggered by @trace health)")
+                    await run_tracecast()
 
         elif x_gitlab_event == "Issue Hook":
             issue_body = payload.get("object_attributes", {}).get("description", "") or ""
             title = payload.get("object_attributes", {}).get("title", "") or ""
-            if "@lore" in issue_body or "@lore" in title:
+            if "@trace" in issue_body or "@trace" in title:
                 logger.info("Routing to SPECFORGE")
                 await run_specforge(payload)
-            if "lore health" in (issue_body + " " + title).lower() or "@lore health" in (issue_body + title):
-                logger.info("Routing to LORECAST (triggered by @lore health in issue)")
-                await run_lorecast()
+            if "trace health" in (issue_body + " " + title).lower() or "@trace health" in (issue_body + title):
+                logger.info("Routing to Tracecast (triggered by @trace health in issue)")
+                await run_tracecast()
 
         else:
             logger.info("Unhandled event type: %s", x_gitlab_event)
@@ -128,18 +128,18 @@ async def webhook(
     return JSONResponse(status_code=200, content={"status": "received"})
 
 
-@app.post("/lorecast")
-async def trigger_lorecast():
+@app.post("/tracecast")
+async def trigger_tracecast():
     """
-    On-demand trigger for LORECAST health report.
+    On-demand trigger for Tracecast health report.
     Hit this endpoint manually or for demo purposes.
     """
-    logger.info("LORECAST triggered manually via /lorecast endpoint")
+    logger.info("Tracecast triggered manually via /tracecast endpoint")
     try:
-        await run_lorecast()
-        return JSONResponse(status_code=200, content={"status": "lorecast complete"})
+        await run_tracecast()
+        return JSONResponse(status_code=200, content={"status": "tracecast complete"})
     except Exception as e:
-        logger.error("LORECAST failed: %s", e, exc_info=True)
+        logger.error("Tracecast failed: %s", e, exc_info=True)
         return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
 

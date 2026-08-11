@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 
-from lore.runtime.github import GitHubClient, GitHubWebhookRuntime, verify_github_signature
+from trace_memory.runtime.github import GitHubClient, GitHubWebhookRuntime, verify_github_signature
 
 
 class Store:

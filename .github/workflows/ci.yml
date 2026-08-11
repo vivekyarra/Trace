@@ -1,4 +1,4 @@
-name: Verify LORE
+name: Verify Trace
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: verify-lore-${{ github.ref }}
+  group: verify-trace-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -26,20 +26,35 @@ jobs:
       - name: Install runtime and test dependencies
         run: |
           python -m pip install -e ".[aws,cockroach,test]"
-          python -m pip install -e ./lore-cli
+          python -m pip install -e ./trace-cli
       - name: Run all runtime and legacy-compatibility tests
-        run: python -m pytest tests lore-cli/tests
+        run: python -m pytest tests trace-cli/tests
       - name: Static and bytecode checks
         run: |
-          python -m ruff check lore
-          python -m compileall -q lore
+          python -m ruff check trace_memory
+          python -m compileall -q trace_memory
+      - name: Enforce Trace branding
+        run: |
+          previous_name="$(printf '\154\157\162\145')"
+          if git grep -Iin "$previous_name"; then
+            echo "Previous project name remains in tracked content" >&2
+            exit 1
+          fi
+          if git ls-files | grep -i "$previous_name"; then
+            echo "Previous project name remains in a tracked path" >&2
+            exit 1
+          fi
       - name: Build and smoke-test the installed artifact
         run: |
           python -m pip install "build>=1.2,<2"
           python -m build
-          python -m venv /tmp/lore-wheel
-          /tmp/lore-wheel/bin/python -m pip install dist/lore_memory-0.2.0-py3-none-any.whl
-          /tmp/lore-wheel/bin/lore-runtime --help
+          python -m build trace-cli
+          python -m venv /tmp/trace-wheel
+          /tmp/trace-wheel/bin/python -m pip install dist/trace_memory-0.2.0-py3-none-any.whl
+          /tmp/trace-wheel/bin/trace-runtime --help
+          python -m venv /tmp/trace-cli-wheel
+          /tmp/trace-cli-wheel/bin/python -m pip install trace-cli/dist/trace_cli-1.0.0-py3-none-any.whl
+          /tmp/trace-cli-wheel/bin/trace --help
       - name: Check migration shape
         run: |
           test -f migrations/001_canonical_memory.sql
@@ -53,8 +68,8 @@ jobs:
           cfn-lint infra/aws.yaml
       - name: Build and smoke-test the runtime image
         run: |
-          docker build --tag "lore:${GITHUB_SHA}" .
-          docker run --rm "lore:${GITHUB_SHA}" --help
+          docker build --tag "trace:${GITHUB_SHA}" .
+          docker run --rm "trace:${GITHUB_SHA}" --help
       - name: Audit Python dependencies
         run: |
           python -m pip install "pip-audit>=2.9,<3"
