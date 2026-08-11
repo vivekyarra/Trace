@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS memories (
 
 CREATE INDEX IF NOT EXISTS memories_repository_status_idx
     ON memories (organization_id, repository_id, status, valid_from DESC);
-CREATE INVERTED INDEX IF NOT EXISTS memories_semantic_key_idx ON memories (semantic_key);
+CREATE INDEX IF NOT EXISTS memories_semantic_key_idx ON memories (semantic_key);
 -- Prefix columns enforce tenant and repository filtering in vector retrieval.
 CREATE VECTOR INDEX IF NOT EXISTS memories_embedding_vector_idx
     ON memories (organization_id, repository_id, embedding);

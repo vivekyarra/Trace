@@ -25,5 +25,6 @@ def test_migration_declares_canonical_vector_memory_and_outbox() -> None:
     migration = Path("migrations/001_canonical_memory.sql").read_text(encoding="utf-8")
     assert "embedding VECTOR(1024)" in migration
     assert "CREATE VECTOR INDEX IF NOT EXISTS memories_embedding_vector_idx" in migration
+    assert "CREATE INDEX IF NOT EXISTS memories_semantic_key_idx" in migration
     assert "CREATE TABLE IF NOT EXISTS outbox_events" in migration
     assert "CREATE ROLE IF NOT EXISTS trace_app" in migration
