@@ -7,9 +7,11 @@ from trace_memory.security import redact, validate_database_url
 
 def test_remote_database_requires_verified_tls() -> None:
     with pytest.raises(ValueError, match="verify-full"):
-        validate_database_url("postgresql://user@db.example/trace")
-    validate_database_url("postgresql://user@db.example/trace?sslmode=verify-full")
-    validate_database_url("postgresql://localhost/trace")
+        validate_database_url("cockroachdb://user@db.example/trace")
+    validate_database_url("cockroachdb://user@db.example/trace?sslmode=verify-full")
+    validate_database_url("cockroachdb://localhost/trace")
+    with pytest.raises(ValueError, match="CockroachDB SQLAlchemy dialect"):
+        validate_database_url("postgresql://user@db.example/trace?sslmode=verify-full")
 
 
 def test_redaction_is_recursive() -> None:

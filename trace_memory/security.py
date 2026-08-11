@@ -22,8 +22,8 @@ def redact(value: object, *, key: str = "") -> object:
 
 def validate_database_url(database_url: str, *, allow_insecure_local: bool = False) -> None:
     parsed = urlsplit(database_url)
-    if parsed.scheme not in {"cockroachdb", "postgresql", "postgresql+psycopg"}:
-        raise ValueError("DATABASE_URL must use a PostgreSQL-compatible scheme")
+    if parsed.scheme != "cockroachdb":
+        raise ValueError("DATABASE_URL must use the CockroachDB SQLAlchemy dialect")
     local = parsed.hostname in {"localhost", "127.0.0.1", "::1"}
     if not allow_insecure_local and not local and "sslmode=verify-full" not in parsed.query:
         raise ValueError("remote DATABASE_URL must enforce sslmode=verify-full")

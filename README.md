@@ -68,7 +68,8 @@ The GitHub Actions workflow repeats those gates, validates both migrations, and 
 
 Copy `.env.template` into your secret manager, not into Git. Required settings are:
 
-- `DATABASE_URL`: the `trace_app` CockroachDB connection, using `sslmode=verify-full` remotely.
+- `DATABASE_URL`: the `trace_app` CockroachDB connection using the `cockroachdb://` SQLAlchemy dialect and
+  `sslmode=verify-full` remotely.
 - `TRACE_ORGANIZATION_ID` and `TRACE_REPOSITORY_ID`: canonical tenant IDs.
 - `GITHUB_REPOSITORY`, `GITHUB_TOKEN`, and a 32+ character `GITHUB_WEBHOOK_SECRET`.
 - `TRACE_SQS_QUEUE_URL` and `TRACE_SQS_DLQ_URL`.
