@@ -1,6 +1,6 @@
 # Phase 1 audit — legacy LORE baseline
 
-Run: 2026-08-11 (Asia/Kolkata)  
+Run: 2026-08-11 (Asia/Kolkata)
 Branch: `feature/phase-1-audit`
 
 ## What exists
