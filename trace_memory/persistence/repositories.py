@@ -178,11 +178,11 @@ class MemoryRepository:
         with self._database.engine.connect() as connection:
             rows = [dict(row) for row in connection.execute(text("""
                 SELECT id, display_id, title, decision, rationale, confidence, security_relevant,
-                       embedding <=> CAST(:embedding AS VECTOR) AS vector_distance
+                       embedding <-> CAST(:embedding AS VECTOR) AS vector_distance
                 FROM memories
                 WHERE organization_id = :organization_id AND repository_id = :repository_id
                   AND status = 'ACTIVE' AND embedding IS NOT NULL
-                ORDER BY embedding <=> CAST(:embedding AS VECTOR) LIMIT :limit
+                ORDER BY embedding <-> CAST(:embedding AS VECTOR) LIMIT :limit
             """), {"organization_id": organization_id, "repository_id": repository_id,
                    "embedding": embedding, "limit": limit}).mappings()]
             if not rows:

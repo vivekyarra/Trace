@@ -18,7 +18,7 @@ def test_vector_query_is_tenant_prefixed_and_filters_active_memories() -> None:
     assert "organization_id = :organization_id" in source
     assert "repository_id = :repository_id" in source
     assert "status = 'ACTIVE'" in source
-    assert "embedding <=> CAST(:embedding AS VECTOR)" in source
+    assert "embedding <-> CAST(:embedding AS VECTOR)" in source
 
 
 def test_migration_declares_canonical_vector_memory_and_outbox() -> None:
