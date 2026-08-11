@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lore-memory"
+version = "0.1.0a1"
+description = "LORE's CockroachDB-backed institutional memory runtime"
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.8,<3", "sqlalchemy>=2.0,<3"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

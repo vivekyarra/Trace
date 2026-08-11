@@ -1,0 +1,29 @@
+name: Verify LORE
+
+on:
+  push:
+    branches: ["main", "develop", "feature/**", "phase/**", "release/**"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python 3.12 tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install runtime and test dependencies
+        run: python -m pip install -e ".[test]"
+      - name: Run canonical-memory tests
+        run: python -m pytest
+      - name: Check migration shape
+        run: |
+          test -f migrations/001_canonical_memory.sql
+          grep -q "CREATE VECTOR INDEX" migrations/001_canonical_memory.sql
+          grep -q "VECTOR(1024)" migrations/001_canonical_memory.sql
