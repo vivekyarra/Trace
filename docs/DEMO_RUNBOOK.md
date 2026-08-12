@@ -1,72 +1,77 @@
 # Trace judge demo runbook
 
-Target length: **2 minutes 40 seconds**. Hard stop at **2:45**; never submit a cut at or above 3:00. Use the isolated PR #4/#5 demo history. Do not show secrets, connection strings, tokens, AWS account IDs, or raw customer code.
+Target length: **2 minutes 40 seconds**. Hard stop at **2:45**. Use the isolated PR #4/#5 history. Never show secrets, connection strings, tokens, AWS account IDs, or raw customer code.
 
-## Preflight — must be green
+## Preflight — every item must be green
 
 ```text
-[ ] Main CI succeeded for the exact release SHA
-[ ] Public AWS judge-console URL opens in a signed-out browser
-[ ] PR #4 and PR #5 are visible without authentication
-[ ] CockroachDB Managed MCP is authorized with Read Data only
-[ ] Managed MCP retrieves TRACE-MEMORY-00401 and retrieval 8033c0ed-9596-4aeb-ba95-e31d5825ac34
-[ ] No secret, connection string, token, AWS account ID, or private console URL is visible
+[ ] Branch CI succeeded for the exact SHA being demonstrated
+[ ] Public AWS Run Trace URL opens signed out
+[ ] PR #4 and PR #5 are public
+[ ] Preset PR #5 completes with a LIVE receipt
+[ ] Receipt shows Titan → CockroachDB → Bedrock classifier with fresh timings and the actual model ID
+[ ] TRACE-MEMORY-00401 is selected and the verdict is CONFLICT
+[ ] Replay snapshot remains labelled REPLAY and is not presented as fresh
+[ ] No secret, connection string, token, or AWS account ID is visible
 ```
 
-If any live check fails, label that segment `REPLAY` and use the previously captured real result. Never describe fixture values as live.
+If a live check fails, show the captured proof only with a visible `REPLAY` label. Never call a fixture or snapshot live.
 
 ## Script and clicks
 
-### 0:00–0:12 — The problem
+### 0:00–0:15 — The problem
 
-Open [PR #4](https://github.com/vivekyarra/Trace/pull/4), already merged into the isolated demo base.
+Open [PR #4](https://github.com/vivekyarra/Trace/pull/4).
 
-Say: “PR #4 records a non-negotiable authorization rule: permission changes must revoke cached access immediately.”
+Say: “Most AI tools help you write code faster. Trace prevents you from writing the wrong code again. PR #4 records one hard-won rule: permission changes must revoke cached access immediately.”
 
-### 0:12–0:32 — The memory, live through Managed MCP
+### 0:15–0:30 — The locally plausible mistake
 
-Use CockroachDB Managed MCP with read-only OAuth to retrieve the exact `TRACE-MEMORY-00401` row. Show its PR #4 source, ACTIVE state, Titan embedding provenance, and repository scope.
+Open [PR #5](https://github.com/vivekyarra/Trace/pull/5) and show the ten-minute permission cache.
 
-Say: “This is a live read-only Managed MCP database call, not a fixture. CockroachDB stores the governed memory and its 1024-dimensional Titan embedding.”
+Say: “This is reasonable if you only read today’s diff. It is dangerous if your codebase remembers why this pattern was rejected.”
 
-### 0:32–0:58 — PR #5 and Trace rejection
+### 0:30–1:15 — Run the functional agent
 
-Open [PR #5](https://github.com/vivekyarra/Trace/pull/5). Do **not** merge it. Jump directly to Trace’s Guardkeeper comment and highlight:
+Open the [public AWS app](https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/). Keep the PR #5 preset selected and click **Run Trace live**.
 
-1. `TRACE-MEMORY-00401`;
-2. the PR #4 source citation;
-3. retrieval `8033c0ed-9596-4aeb-ba95-e31d5825ac34`;
-4. the rejection of the ten-minute stale authorization cache.
+While it runs, point to the four stages:
 
-Say: “PR #5 looks plausible alone. Trace retrieves the governing decision, recognizes the semantic conflict, and rejects the stale authorization window before merge.”
+1. fresh 1024-dimensional Titan embedding on Amazon Bedrock;
+2. tenant-scoped CockroachDB vector retrieval;
+3. schema-checked Bedrock conflict classification (Claude preferred; Nova truth-labelled fallback);
+4. memory consequence receipt.
 
-### 0:58–1:28 — Public AWS judge console
+Say: “This button is traversing the live read path now. The page is not holding the answer. Titan embeds this diff, CockroachDB returns the active governed candidates, and the Bedrock classifier may select only IDs that came from that candidate set. The receipt names whether Claude or the Nova fallback actually ran.”
 
-Open the [public AWS judge proof console](https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/). Point to PR #4, `TRACE-MEMORY-00401`, PR #5, and the two CockroachDB tools. Expand the immutable identifiers and model provenance.
+### 1:15–1:42 — Show the consequence, not just the answer
 
-Say: “This unrestricted read-only proof viewer is deployed on AWS Lambda. It exposes the immutable identifiers from the verified live run and no write route; the fresh database read you just saw came directly through Managed MCP.”
+Read the `CONFLICT` verdict, selected `TRACE-MEMORY-00401`, source URL, timing rows, and receipt counterfactual.
 
-### 1:28–2:08 — How the live path works
+Say: “The receipt proves causality. Without this CockroachDB memory, the governing conflict finding disappears. Memory did not decorate the prompt—it changed the review.”
 
-Show the current architecture diagram or README runtime flow: signed GitHub webhook → CockroachDB task/outbox transaction → encrypted SQS FIFO → Bedrock Claude/Titan → governed memory/review. Point out that CockroachDB provides Distributed Vector Indexing and read-only Managed MCP.
+### 1:42–2:05 — Explain the production loop
 
-Say: “CockroachDB gives Trace serializable state, configured distributed vector indexing, and the Managed MCP surface you just saw. SQS makes processing durable; Bedrock supplies Titan embeddings and Claude reasoning.”
+Show the README runtime diagram.
 
-### 2:08–2:32 — Provenance and lifecycle
+Say: “In production, a signed GitHub webhook commits task and outbox state atomically in CockroachDB, SQS provides durable execution, Titan and Claude reason through Bedrock, and every retrieval and action remains attributable. Crashes and duplicate deliveries do not create duplicate effective work.”
 
-Return to the memory/retrieval record. Show source URL, selected state, model provenance, and the immutable IDs. State precisely that the current three-row `EXPLAIN` did not select the vector index; do not claim accelerated retrieval.
+### 2:05–2:25 — Why CockroachDB
 
-Say: “Every conclusion remains attributable. Decisions can be superseded without erasing why they existed.”
+Show the candidate details or the previously verified Read Data-only Managed MCP row.
 
-### 2:32–2:40 — Close
+Say: “CockroachDB is not just a vector sidecar. It keeps vectors, provenance, lifecycle, dependencies, tasks, and audit truth together under serializable transactions. Managed MCP gives judges a second, direct read-only inspection path.”
 
-Return to PR #5.
+Do not claim that the tiny proof query used the vector index. Say that distributed vector indexing is configured and the small-corpus `EXPLAIN` chose a scan.
 
-Say: “Coding agents help teams move faster. Trace stops them from repeating what the team already learned the hard way.”
+### 2:25–2:40 — Close
+
+Return to the verdict.
+
+Say: “Most submissions ask AI to write more code. Trace asks whether the code should exist at all. Your codebase does not just remember—it has a point of view.”
 
 ## Failure fallback
 
-- Managed MCP delayed: use the already captured live MCP result and label it `REPLAY`.
-- Console unavailable: use `/api/status`; if both fail, do not record or submit until the AWS URL is restored.
-- Bedrock billing unavailable: show the immutable successful live record and label it `REPLAY`; never imply a fresh inference.
-- Editing rule: remove pauses before removing proof. Final exported duration must be 2:35–2:45.
+- If live Bedrock or CockroachDB fails, expand the fallback and show `REPLAY`; never imply a fresh run.
+- If the app fails before recording, do not submit until `/healthz` and a preset live run pass again.
+- Remove pauses before removing proof. Final export should land between 2:35 and 2:45.

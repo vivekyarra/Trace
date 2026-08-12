@@ -30,11 +30,23 @@ class ReviewFinding(BaseModel):
     source_url: str | None = None
 
 
+class MemoryConsequenceReceipt(BaseModel):
+    """Auditable proof of how retrieved memory changed a review."""
+
+    model_config = ConfigDict(extra="forbid")
+    memory_changed_review: bool
+    governing_memory_ids: list[str] = Field(default_factory=list)
+    memory_conflict_findings: int = Field(ge=0)
+    independent_findings: int = Field(ge=0)
+    counterfactual: str = Field(min_length=1)
+
+
 class GuardkeeperReview(BaseModel):
     model_config = ConfigDict(extra="forbid")
     findings: list[ReviewFinding] = Field(default_factory=list)
     retrieval_event_id: UUID | None = None
     selected_memory_ids: list[str] = Field(default_factory=list)
+    memory_consequence: MemoryConsequenceReceipt
     prompt_version: str = GUARDKEEPER_RERANK_V1.version
 
 
@@ -130,8 +142,27 @@ class Guardkeeper:
                 final_action=final_action, prompt_version=GUARDKEEPER_RERANK_V1.version,
                 model_id=getattr(self._reasoner, "model_id", None),
             )
-        return GuardkeeperReview(findings=findings, retrieval_event_id=retrieval_event_id,
-                                 selected_memory_ids=sorted(selected))
+        selected_ids = sorted(selected)
+        memory_finding_count = sum(finding.layer is FindingLayer.MEMORY_CONFLICT for finding in findings)
+        independent_finding_count = len(findings) - memory_finding_count
+        if memory_finding_count:
+            counterfactual = (
+                f"Without the selected institutional memory, {memory_finding_count} memory-conflict "
+                f"finding(s) would be absent; {independent_finding_count} independent finding(s) would remain."
+            )
+        else:
+            counterfactual = (
+                "No institutional memory was selected, so removing memory would not change this review's findings."
+            )
+        consequence = MemoryConsequenceReceipt(
+            memory_changed_review=bool(memory_finding_count), governing_memory_ids=selected_ids,
+            memory_conflict_findings=memory_finding_count,
+            independent_findings=independent_finding_count, counterfactual=counterfactual,
+        )
+        return GuardkeeperReview(
+            findings=findings, retrieval_event_id=retrieval_event_id,
+            selected_memory_ids=selected_ids, memory_consequence=consequence,
+        )
 
     def _select(self, ranked: list[RankedCandidate], candidates: list[dict[str, object]],
                 diff: str) -> tuple[set[str], dict[str, str], dict[str, float], str]:

@@ -1,12 +1,61 @@
 # Trace
 
-Trace is institutional memory for software teams. It observes GitHub issues and pull requests, retrieves the decisions that govern the affected code, uses Anthropic Claude on Amazon Bedrock to reason about conflicts and promises, and stores the resulting memory and provenance in CockroachDB.
+Most AI coding tools help teams write code faster. **Trace prevents teams from writing the wrong code again.**
 
-## Live functional demo
+Trace is institutional memory for software teams. It follows a change from issue to production, retrieves the decisions that govern the affected code, uses Anthropic Claude on Amazon Bedrock to reason about conflicts and promises, and stores the resulting memory, provenance, and lifecycle in CockroachDB.
 
-**[Open the public AWS judge proof console](https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/)**
+## The problem
 
-The unrestricted, read-only AWS Lambda app walks judges through the verified PR #4 → `TRACE-MEMORY-00401` → PR #5 rejection and exposes the immutable identifiers and model provenance behind that run. It is deliberately truth-labelled as a verified 2026-08-11 live-proof snapshot: it remains available even when billing-dependent Bedrock inference is paused and does not pretend that a fresh inference is running.
+Teams do not break architecture because they are careless. They break it because:
+
+- the people who understood the original decision leave;
+- decisions are buried in pull-request threads nobody can find;
+- a locally reasonable change reintroduces the exact pattern that failed before;
+- reviewers repeat the same correction because the repository never learned it.
+
+ADRs require somebody to write and maintain them. Trace learns from the work the team already does.
+
+## The original idea: memory that is allowed to disagree
+
+Most agent memory optimizes for continuity: remember the user, retrieve a similar conversation, and help with the next request. Trace uses memory for something harder. It gives the codebase a durable point of view.
+
+A Trace memory is not a text chunk. It is governed state with provenance, confidence, repository scope, security relevance, dependencies, and an ACTIVE/SUPERSEDED lifecycle. When a future pull request is locally reasonable but institutionally wrong, Trace retrieves the governing decision, explains the conflict, cites the exact source, and acts in the review before the mistake reaches production.
+
+That creates a closed loop traditional tools leave open:
+
+```text
+team learns why → Trace preserves the decision → a later change conflicts
+       ↑                                             ↓
+source and lifecycle ← Trace cites, challenges, and records the outcome
+```
+
+The key insight is that agentic memory should not merely make an agent sound consistent. It should make an engineering organization behave consistently across time. [Read the originality case](docs/ORIGINALITY.md).
+
+Guardkeeper makes that causal claim inspectable with a **memory consequence receipt** on every review: it lists the governing memories, separates memory-derived conflicts from independent deterministic findings, and states exactly which findings would disappear if memory were removed.
+
+## How Trace works
+
+Trace follows the complete engineering lifecycle and gets more useful after every merge:
+
+1. **Issue created — Specforge pre-mortem.** Finds relevant failures, predicts risks, asks hard questions, and records implementation promises.
+2. **Pull request opened — Guardkeeper.** Retrieves governed memory, detects semantic conflicts, verifies promises, inspects architectural drift, and runs deterministic security checks.
+3. **Pull request merged — Tracekeeper.** Extracts decisions from discussion and code with provenance, dependencies, pattern rules, and carbon implications.
+4. **Decision challenged — Reply Handler.** Supersedes or preserves memory without erasing history.
+5. **Health and onboarding — Tracecast.** Builds decision health, security inventory, sustainability totals, knowledge graphs, and prioritized briefings.
+6. **Any time — Trace Ask.** Answers questions with specific decisions, dates, people, sources, and dependency paths.
+
+## Live functional demo — run the agent
+
+**[Open the public AWS app and click Run Trace live](https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/)**
+
+Select the real PR #5 preset or paste a pull-request diff. Each click executes a fresh, read-only path:
+
+```text
+PR diff → Titan 1024-D embedding → CockroachDB governed retrieval
+        → Claude conflict classification → memory consequence receipt
+```
+
+The receipt shows cloud-stage timings, retrieved candidates, selected memory IDs, the verdict, and the finding that would disappear without memory. If a cloud dependency is unavailable, the verified 2026-08-11 evidence appears only as an explicitly labelled `REPLAY` fallback. It is never substituted for a live result.
 
 ### Required platform integrations
 
@@ -14,8 +63,8 @@ The unrestricted, read-only AWS Lambda app walks judges through the verified PR 
 |---|---|
 | **CockroachDB Distributed Vector Indexing** | Stores tenant-scoped 1024-dimensional Titan embeddings beside transactional memory, provenance, tasks, and audit state. The distributed vector index is configured; the small-corpus proof does not claim optimizer index selection. |
 | **CockroachDB Cloud Managed MCP Server** | Uses OAuth **Read Data** only to retrieve the exact live `TRACE-MEMORY-00401` and retrieval `8033c0ed-9596-4aeb-ba95-e31d5825ac34` records directly from the cluster, with no custom proxy. |
-| **Amazon Bedrock** | Titan Text Embeddings V2 creates memory/query vectors and Anthropic Claude performs schema-constrained conflict reasoning and reranking. |
-| **AWS Lambda** | Hosts the unrestricted public judge proof console from tracked source in `infra/judge_console_lambda.py`. |
+| **Amazon Bedrock** | Titan Text Embeddings V2 creates memory/query vectors. Anthropic Claude is the preferred schema-constrained classifier; the public app truthfully falls back to Amazon Nova when Anthropic Marketplace entitlement is unavailable and records the model that actually ran. |
+| **AWS Lambda** | Hosts the unrestricted public `Run Trace` app from tracked source in `infra/judge_console_lambda.py`; its primary route performs the live read path and exposes no write route. |
 | **Amazon SQS, KMS, and CloudWatch** | FIFO delivery, encrypted DLQ retention, bounded retries, and operational alarms make the agent path durable and observable. |
 
 It is built for one uncomfortable truth: teams rarely repeat failures because nobody cared. They repeat them because the reason behind yesterday's decision disappeared into a review thread.
@@ -27,7 +76,7 @@ It is built for one uncomfortable truth: teams rarely repeat failures because no
 - The outbox publisher and SQS worker use durable task state, bounded retries, FIFO deduplication, and an encrypted dead-letter queue.
 - Anthropic Claude reasoning and Titan embeddings run through Amazon Bedrock. Every model response is schema-validated before it can affect stored state.
 - Guardkeeper always runs deterministic security checks even if model reasoning is unavailable.
-- The database-backed `trace-runtime console` command exposes live counts, recent task state, health, and evidence without a write route; the public AWS proof viewer above remains an immutable, truth-labelled release artifact.
+- The database-backed `trace-runtime console` exposes operator evidence without a write route. The public AWS app executes fresh read-only embedding, retrieval, and classification; its immutable proof remains a truth-labelled fallback.
 - Legacy wiki memories can be imported idempotently, and SQL migrations are checksum-tracked.
 - Logs are structured and recursively redact secret-bearing fields; operational counters use Prometheus text format.
 
@@ -160,6 +209,7 @@ Deploy it with an existing ECS/App Runner task role, an SNS alarm topic, and exa
 - [Devpost submission](docs/DEVPOST_SUBMISSION.md)
 - [Operations and incident runbook](docs/OPERATIONS.md)
 - [Security model](SECURITY.md)
+- [Why Trace is an original agentic-memory design](docs/ORIGINALITY.md)
 - [Release verification](docs/RELEASE_CHECKLIST.md)
 
 Every demo step distinguishes live evidence from fixture data. No database, AWS, Bedrock, or GitHub result is claimed live until the corresponding preflight is green.

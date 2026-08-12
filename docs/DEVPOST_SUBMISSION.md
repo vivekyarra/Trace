@@ -1,61 +1,101 @@
-# Devpost submission — Trace
-
-## Tagline
-
-Your codebase remembers why.
+# Trace — Your codebase remembers why
 
 ## Inspiration
 
-The most expensive engineering mistakes are often repeats. A retry strategy was rejected after an outage, an authentication shortcut was prohibited in review, or a library was chosen to avoid a subtle failure—and six months later the reason is gone. ADRs help only when somebody writes them. Review comments help only when somebody can find them.
+Most AI coding tools help teams write code faster. Trace prevents teams from writing the wrong code again.
 
-Trace turns the work a team already does into living, enforceable institutional memory.
+Teams rarely repeat failures because nobody cared. They repeat them because the reason behind yesterday's decision disappeared into a pull-request thread:
+
+- the engineer who understood the original trade-off left;
+- the outage report is disconnected from the code it governs;
+- six months later, a locally sensible change reintroduces the rejected pattern;
+- reviewers repeat the same correction because the repository never learned it.
+
+ADRs work only when somebody writes and maintains them. Trace turns the work a team already does into living, enforceable institutional memory.
 
 ## What it does
 
-Trace follows a change from issue to production. On an issue it creates a failure pre-mortem. On a pull request it retrieves relevant historical decisions, checks implementation promises, inspects architectural drift, and always runs a deterministic security sentinel. After merge it extracts durable decisions into CockroachDB, including provenance and lifecycle state. When a decision changes, Trace supersedes it without erasing history.
+Trace follows a change from issue to production and gets more useful after every merge.
 
-The judge console makes the system inspectable: active and security-relevant memories, task outcomes, retrieval traces, pending outbox work, and dead-lettered failures are visible from the canonical database.
+1. **Before code — Specforge.** It retrieves relevant incidents and decisions, predicts likely failures, asks hard questions, and turns the answers into promises the eventual pull request must keep.
+2. **During review — Guardkeeper.** It embeds the diff, retrieves governed memory from CockroachDB, asks Anthropic Claude on Amazon Bedrock to identify semantic conflicts, verifies promises, and always runs deterministic security checks.
+3. **After merge — Tracekeeper.** It extracts decisions from both discussion and code, stores provenance and Titan embeddings, tracks relationships and carbon implications, and captures recurring review rules.
+4. **When a decision changes — Reply Handler.** It supersedes the old memory without erasing it, transfers dependency links, and records the new reasoning.
+5. **Across the team — Tracecast and Onboarding.** It produces decision health, security inventory, sustainability totals, knowledge graphs, and prioritized briefings.
+6. **At any time — Trace Ask.** It answers natural-language questions with specific decisions, dates, sources, and dependency paths.
+
+The public demo executes the core loop on demand: select or paste a PR diff, create a fresh Titan embedding, retrieve tenant-scoped memories from CockroachDB, classify the conflict with Claude, and return a memory consequence receipt. The verified 2026-08-11 snapshot remains available only as an explicitly labelled replay fallback.
+
+## The proof in one change
+
+PR #4 established a security invariant: permission changes must invalidate cached authorization immediately. Trace preserved it as `TRACE-MEMORY-00401`, with its source, scope, status, rationale, and 1024-dimensional Titan embedding.
+
+PR #5 later introduced a ten-minute permission-decision cache. The diff looks reasonable in isolation. Trace retrieves the PR #4 memory, recognizes that the new implementation recreates the forbidden stale-authorization window, and classifies the change as a conflict before merge.
+
+The result includes a **memory consequence receipt**: the governing memory IDs, the number of retrieved candidates, and the exact counterfactual—what finding would disappear if institutional memory were removed. “Memory changed the agent” is therefore an inspectable product property, not demo narration.
+
+## Why this is agentic memory
+
+Trace is not a chatbot with longer context, an ADR search box, or a vector database bolted onto code review.
+
+Most memory systems optimize for continuity: retrieve something similar and help with the next request. Trace gives memory authority. A memory has provenance, confidence, repository scope, security relevance, dependency links, and an `ACTIVE` or `SUPERSEDED` lifecycle. It can disagree with a developer, change the review outcome, cite the decision that governs the code, and evolve without rewriting history.
+
+Three design choices make that possible:
+
+1. **Authority beyond similarity.** Ranking combines vector distance with file scope, confidence, security relevance, feedback, and lifecycle state.
+2. **Correct forgetting.** Supersession is an auditable state transition, not an overwrite.
+3. **A closed loop.** Trace observes work, remembers why, acts on a later change, and records the consequence as future evidence.
 
 ## How we built it
 
-- CockroachDB stores tenant-scoped decision memory, vector embeddings, relationships, provenance, audit events, tasks, and the transactional outbox.
-- Amazon Titan Text Embeddings V2 produces 1024-dimensional vectors.
-- Anthropic Claude on Amazon Bedrock performs structured pre-mortem, review, and decision extraction reasoning.
-- GitHub webhooks enter through an HMAC-verified, idempotent admission boundary.
-- Amazon SQS FIFO separates delivery from reasoning; a KMS-encrypted DLQ and CloudWatch alarms make failure operationally visible.
-- Python/Pydantic reject unknown fields and malformed model output at every boundary.
+- **CockroachDB Cloud** stores tenant-scoped memories, `VECTOR(1024)` embeddings, provenance, relationships, retrieval traces, tasks, audit events, and a transactional outbox in one serializable source of truth.
+- **CockroachDB Distributed Vector Indexing** is configured with organization and repository prefix columns. We do not claim optimizer index selection for the tiny proof corpus; its recorded `EXPLAIN` chose a scan.
+- **CockroachDB Cloud Managed MCP** was authorized with Read Data only and independently retrieved the exact live memory and retrieval rows.
+- **Amazon Titan Text Embeddings V2 on Bedrock** creates stored memory vectors and fresh query vectors.
+- **Anthropic Claude on Amazon Bedrock** is the preferred schema-constrained semantic classifier. The public demo uses a truth-labelled Amazon Nova fallback when the AWS account cannot complete Anthropic Marketplace entitlement, and its receipt records the model that actually ran.
+- **AWS Lambda** hosts the public read-only `Run Trace` app. Its primary route traverses Bedrock → CockroachDB → Bedrock; it exposes no write route.
+- **Amazon SQS FIFO, KMS, and CloudWatch** make the production webhook path durable, encrypted, bounded, and observable.
+- **Python, Pydantic, SQLAlchemy, and pg8000** enforce typed boundaries from model output to transactional state and the lightweight Lambda read path.
 
-## The hard parts
+## Challenges we ran into
 
-The difficult problem was not generating prose. It was making AI behaviour durable and accountable. A webhook can be repeated. A database transaction can restart. A worker can crash after publishing. A model can return plausible but malformed output. Trace treats each of those as a normal production condition: deterministic keys, transactional outbox state, CockroachDB serialization retries, FIFO deduplication, strict schemas, bounded attempts, and provenance records.
+The hard problem was not generating prose. It was making AI behaviour durable and accountable.
 
-Hybrid retrieval was another important choice. Vector similarity alone can bury a security decision. Trace combines semantic distance with code scope, confidence, security relevance, and human feedback, then records why each candidate was selected.
+A webhook may be delivered twice. A CockroachDB transaction may restart. A worker may crash after publishing. A model may return confident but malformed output. Trace treats each as a normal production condition with deterministic keys, transactional outbox state, serialization retries, FIFO deduplication, strict output schemas, bounded attempts, and provenance.
 
-## Accomplishments
+Hybrid retrieval was equally important. Pure similarity can bury a high-impact security decision beneath nearby text. Trace separates candidate retrieval from constrained model selection and records both the rank components and final reasoning.
 
-- A canonical vector-backed memory model with governed supersession instead of destructive updates.
-- Real GitHub-to-SQS-to-Bedrock-to-CockroachDB runtime paths.
-- Fail-closed webhook and model boundaries.
-- Read-only MCP and judge/operator views over the same canonical source.
-- Compatibility import for existing Trace wiki memory.
-- Release gates covering the new runtime and the original 43-test CLI compatibility suite.
+The demo itself exposed another useful standard: a static proof page is evidence, not a functional app. We kept that evidence as replay fallback and made the primary judge action execute a fresh, read-only memory loop with timings and model/database provenance.
+
+## Accomplishments that we're proud of
+
+- A governed memory lifecycle that supersedes decisions without destroying history.
+- A real GitHub → CockroachDB/SQS → Bedrock → GitHub production path.
+- A public judge action that performs fresh Titan embedding, CockroachDB retrieval, Bedrock classification, and consequence reporting, with Claude preferred and a truth-labelled Nova fallback.
+- Fail-closed webhook and model boundaries plus an always-on deterministic security sentinel.
+- Retrieval evidence that makes memory influence causally inspectable.
+- Read-only Managed MCP verification against the same canonical CockroachDB source.
+- Compatibility import for the original GitLab Duo flow and wiki memory format.
+- A release suite covering runtime, migration, security, retrieval, queue, UI, and the original CLI.
 
 ## What we learned
 
-Institutional memory needs opinions, but infrastructure needs boring guarantees. Claude is strongest when semantic judgment is surrounded by deterministic admission, security, lifecycle, and audit rules. CockroachDB's serializable transactions and vector indexing let those guarantees and the semantic memory live in one inspectable system.
+Institutional memory needs opinions; infrastructure needs boring guarantees. Claude is strongest when semantic judgment is surrounded by deterministic admission, security, lifecycle, and audit rules. CockroachDB makes the central idea practical because semantic recall and operational truth live in the same transactional system.
+
+Most importantly, memory becomes valuable when it can change an action. Retrieval alone is not the product. The consequence is.
 
 ## What's next
 
-The next production iteration will add GitHub App installation-token minting, multi-region worker deployment, operator-approved DLQ replay, retrieval-quality evaluation sets, and organization-level policy controls. These are roadmap items, not claims about this release.
+Next we will add GitHub App installation-token minting, multi-region workers, operator-approved dead-letter replay, retrieval-quality evaluation sets, and organization-level policy controls. These are roadmap items, not claims about this release.
 
 ## Built with
 
-CockroachDB, Amazon Bedrock, Anthropic Claude, Amazon Titan Embeddings, Amazon SQS, AWS CloudWatch, GitHub, Python, Pydantic, and SQLAlchemy.
+CockroachDB Cloud, CockroachDB Distributed Vector Indexing, CockroachDB Cloud Managed MCP, Amazon Bedrock, Anthropic Claude, Amazon Titan Text Embeddings V2, AWS Lambda, Amazon SQS, AWS KMS, Amazon CloudWatch, GitHub, Python, Pydantic, SQLAlchemy, and pg8000.
 
-## Required tool usage
+## Closing
 
-- **CockroachDB Distributed Vector Indexing:** Trace stores 1024-dimensional Titan memory embeddings in CockroachDB and configures a tenant/repository-prefixed distributed vector index. The proof corpus was too small for its `EXPLAIN` to select that index, so we do not claim accelerated retrieval for that run.
-- **CockroachDB Cloud Managed MCP Server:** a Read Data-only OAuth connection retrieved the exact live `TRACE-MEMORY-00401` and `8033c0ed-9596-4aeb-ba95-e31d5825ac34` retrieval rows directly from the cluster without a custom proxy.
-- **Amazon Bedrock:** Titan Text Embeddings V2 generated stored memory/query vectors; Anthropic Claude performed schema-constrained conflict reasoning and candidate reranking.
-- **AWS Lambda:** the [public judge proof console](https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/) is an unrestricted read-only app deployed from tracked source. It truthfully labels its content as an immutable verified-live-proof snapshot rather than a fresh inference.
-- **Amazon SQS, KMS, and CloudWatch:** the production path uses encrypted FIFO delivery, a retained DLQ, bounded retry state, and alarms.
+Most submissions ask AI to write more code. Trace asks whether the code should exist at all.
+
+It does not just remember decisions. It turns yesterday's hard-won reason into an active constraint on tomorrow's agent.
+
+— Trace

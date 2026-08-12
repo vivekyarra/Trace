@@ -117,3 +117,7 @@ def test_merge_remember_retrieve_and_cite_source_loop() -> None:
     assert store.retrievals[0]["ranked"][0].semantic_score == 0.97
     assert "https://github.com/acme/trace/pull/7" in github.comments[-1][1]
     assert "00000000-0000-0000-0000-000000000123" in github.comments[-1][1]
+    assert "## Memory consequence receipt" in github.comments[-1][1]
+    assert "**Memory changed this review:** yes" in github.comments[-1][1]
+    assert "**Governing memories:** TRACE-MEMORY-00701" in github.comments[-1][1]
+    assert "Without the selected institutional memory" in github.comments[-1][1]

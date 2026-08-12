@@ -130,7 +130,14 @@ class GitHubAutomation:
             output_type=AutomationEnvelope, max_tokens=1400,
         )
         provenance = f"\n\nRetrieval event: `{review.retrieval_event_id}`" if review.retrieval_event_id else ""
-        self._publish(task_id, number, envelope.comment + "\n\n" + deterministic + provenance,
+        consequence = review.memory_consequence
+        receipt = (
+            "\n\n## Memory consequence receipt\n"
+            f"- **Memory changed this review:** {'yes' if consequence.memory_changed_review else 'no'}\n"
+            f"- **Governing memories:** {', '.join(consequence.governing_memory_ids) or 'none'}\n"
+            f"- **Counterfactual:** {consequence.counterfactual}"
+        )
+        self._publish(task_id, number, envelope.comment + "\n\n" + deterministic + receipt + provenance,
                       review.prompt_version)
 
     def _issue(self, task_id: UUID, number: int, payload: dict[str, object]) -> None:
