@@ -42,9 +42,9 @@ Say: “PR #5 looks plausible alone. Trace retrieves the governing decision, rec
 
 ### 0:58–1:28 — Public AWS judge console
 
-Open the public AWS judge-console URL. Point to live counts, recent task status, retrieval count, zero pending outbox work, and zero dead-lettered tasks. Open `/api/status` only if it adds proof without slowing the cut.
+Open the [public AWS judge proof console](https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/). Point to PR #4, `TRACE-MEMORY-00401`, PR #5, and the two CockroachDB tools. Expand the immutable identifiers and model provenance.
 
-Say: “The public read-only console is deployed on AWS and reads the same CockroachDB system of record. It exposes no write route.”
+Say: “This unrestricted read-only proof viewer is deployed on AWS Lambda. It exposes the immutable identifiers from the verified live run and no write route; the fresh database read you just saw came directly through Managed MCP.”
 
 ### 1:28–2:08 — How the live path works
 

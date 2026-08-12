@@ -12,7 +12,7 @@ The required path completed successfully:
 4. Open [PR B #5](https://github.com/vivekyarra/Trace/pull/5) triggered CockroachDB vector candidate retrieval backed by a configured distributed vector index, followed by the production `HybridRanker` and Bedrock reranking.
 5. Retrieval `8033c0ed-9596-4aeb-ba95-e31d5825ac34` selected the memory and Trace's Guardkeeper comment cited PR A.
 
-PR B remains open and `main` was not changed.
+PR B remains open and was never merged. At the time of this isolated live run, `main` was not changed; the separately reviewed production-hardening commits were later promoted to `main` without merging PR B.
 
 ## Immutable evidence chain
 
@@ -41,3 +41,5 @@ The successful live run occurred before commit `3f40f86`, and its textual `selec
 - **Vector-index precision:** the live schema has a configured distributed vector index, but the three-row `EXPLAIN` in [`vector-explain.txt`](vector-explain.txt) selected a primary-key scan. This evidence therefore does not claim that the optimizer selected the vector index or accelerated retrieval at that corpus size.
 
 The screenshots and their proof mapping are in [`screenshots/README.md`](../../screenshots/README.md).
+
+The judge-facing AWS deployment is recorded in [`aws-demo-deployment.md`](aws-demo-deployment.md).

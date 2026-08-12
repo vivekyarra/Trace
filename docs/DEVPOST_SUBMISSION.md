@@ -51,3 +51,11 @@ The next production iteration will add GitHub App installation-token minting, mu
 ## Built with
 
 CockroachDB, Amazon Bedrock, Anthropic Claude, Amazon Titan Embeddings, Amazon SQS, AWS CloudWatch, GitHub, Python, Pydantic, and SQLAlchemy.
+
+## Required tool usage
+
+- **CockroachDB Distributed Vector Indexing:** Trace stores 1024-dimensional Titan memory embeddings in CockroachDB and configures a tenant/repository-prefixed distributed vector index. The proof corpus was too small for its `EXPLAIN` to select that index, so we do not claim accelerated retrieval for that run.
+- **CockroachDB Cloud Managed MCP Server:** a Read Data-only OAuth connection retrieved the exact live `TRACE-MEMORY-00401` and `8033c0ed-9596-4aeb-ba95-e31d5825ac34` retrieval rows directly from the cluster without a custom proxy.
+- **Amazon Bedrock:** Titan Text Embeddings V2 generated stored memory/query vectors; Anthropic Claude performed schema-constrained conflict reasoning and candidate reranking.
+- **AWS Lambda:** the [public judge proof console](https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/) is an unrestricted read-only app deployed from tracked source. It truthfully labels its content as an immutable verified-live-proof snapshot rather than a fresh inference.
+- **Amazon SQS, KMS, and CloudWatch:** the production path uses encrypted FIFO delivery, a retained DLQ, bounded retry state, and alarms.

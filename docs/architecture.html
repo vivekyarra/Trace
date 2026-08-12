@@ -57,7 +57,7 @@
 
   <h2>Public judge surface</h2>
   <section class="proof">
-    <article><h3>AWS judge console</h3><p>The deployed console exposes live read-only counts, recent task state, and <code>/api/status</code>. It defines no write route and sends no-store and browser-hardening headers.</p></article>
+    <article><h3>AWS judge proof console</h3><p>The deployed Lambda app exposes the immutable verified-live-run identifiers and source links even when billing-dependent inference is paused. It defines no write route and sends no-store and browser-hardening headers.</p></article>
     <article><h3>Immutable live proof</h3><p>PR #4 → <code>TRACE-MEMORY-00401</code> → PR #5 → Guardkeeper rejection is cross-linked by source, task, retrieval, and comment identifiers.</p></article>
     <article><h3>Honest failure state</h3><p>If a cloud dependency is unavailable, the demo labels captured real evidence as REPLAY. Fixtures are never presented as live results.</p></article>
   </section>

@@ -2,6 +2,22 @@
 
 Trace is institutional memory for software teams. It observes GitHub issues and pull requests, retrieves the decisions that govern the affected code, uses Anthropic Claude on Amazon Bedrock to reason about conflicts and promises, and stores the resulting memory and provenance in CockroachDB.
 
+## Live functional demo
+
+**[Open the public AWS judge proof console](https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/)**
+
+The unrestricted, read-only AWS Lambda app walks judges through the verified PR #4 → `TRACE-MEMORY-00401` → PR #5 rejection and exposes the immutable identifiers and model provenance behind that run. It is deliberately truth-labelled as a verified 2026-08-11 live-proof snapshot: it remains available even when billing-dependent Bedrock inference is paused and does not pretend that a fresh inference is running.
+
+### Required platform integrations
+
+| Platform tool/service | What Trace actually does with it |
+|---|---|
+| **CockroachDB Distributed Vector Indexing** | Stores tenant-scoped 1024-dimensional Titan embeddings beside transactional memory, provenance, tasks, and audit state. The distributed vector index is configured; the small-corpus proof does not claim optimizer index selection. |
+| **CockroachDB Cloud Managed MCP Server** | Uses OAuth **Read Data** only to retrieve the exact live `TRACE-MEMORY-00401` and retrieval `8033c0ed-9596-4aeb-ba95-e31d5825ac34` records directly from the cluster, with no custom proxy. |
+| **Amazon Bedrock** | Titan Text Embeddings V2 creates memory/query vectors and Anthropic Claude performs schema-constrained conflict reasoning and reranking. |
+| **AWS Lambda** | Hosts the unrestricted public judge proof console from tracked source in `infra/judge_console_lambda.py`. |
+| **Amazon SQS, KMS, and CloudWatch** | FIFO delivery, encrypted DLQ retention, bounded retries, and operational alarms make the agent path durable and observable. |
+
 It is built for one uncomfortable truth: teams rarely repeat failures because nobody cared. They repeat them because the reason behind yesterday's decision disappeared into a review thread.
 
 ## What is production-ready here
@@ -11,7 +27,7 @@ It is built for one uncomfortable truth: teams rarely repeat failures because no
 - The outbox publisher and SQS worker use durable task state, bounded retries, FIFO deduplication, and an encrypted dead-letter queue.
 - Anthropic Claude reasoning and Titan embeddings run through Amazon Bedrock. Every model response is schema-validated before it can affect stored state.
 - Guardkeeper always runs deterministic security checks even if model reasoning is unavailable.
-- The read-only judge console exposes live counts, recent task state, health, and evidence without a write route.
+- The database-backed `trace-runtime console` command exposes live counts, recent task state, health, and evidence without a write route; the public AWS proof viewer above remains an immutable, truth-labelled release artifact.
 - Legacy wiki memories can be imported idempotently, and SQL migrations are checksum-tracked.
 - Logs are structured and recursively redact secret-bearing fields; operational counters use Prometheus text format.
 
@@ -138,6 +154,8 @@ Deploy it with an existing ECS/App Runner task role, an SNS alarm topic, and exa
 
 ## Demo and release evidence
 
+- [Public AWS judge proof console](https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/)
+- [Immutable live core proof](docs/evidence/core-live-proof.md)
 - [Demo runbook](docs/DEMO_RUNBOOK.md)
 - [Devpost submission](docs/DEVPOST_SUBMISSION.md)
 - [Operations and incident runbook](docs/OPERATIONS.md)
