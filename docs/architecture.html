@@ -1,116 +1,66 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trace — Production Architecture</title>
 <style>
-  body { background: #1a1a2e; margin: 40px; font-family: system-ui; }
-  h2 { color: #e94560; text-align: center; font-size: 28px; margin-bottom: 30px; }
-  .mermaid { background: #16213e; border-radius: 12px; padding: 30px; }
+  :root { color-scheme: dark; --bg:#07111f; --panel:#102039; --line:#2e4a6c; --ink:#eef5ff; --muted:#9db0c8; --mint:#62e0bf; --amber:#f2bb66; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:radial-gradient(circle at 50% 0,#142b4d 0,var(--bg) 48%); color:var(--ink); font:16px/1.5 system-ui,sans-serif; }
+  main { width:min(1180px,calc(100% - 32px)); margin:auto; padding:56px 0 72px; }
+  header { text-align:center; max-width:850px; margin:0 auto 38px; }
+  h1 { margin:0; font-size:clamp(2.2rem,6vw,4rem); letter-spacing:-.04em; }
+  h2 { margin:48px 0 18px; }
+  p { color:var(--muted); }
+  .live { color:var(--mint); font-weight:750; letter-spacing:.12em; text-transform:uppercase; }
+  .flow { display:grid; grid-template-columns:repeat(6,minmax(130px,1fr)); gap:26px; align-items:stretch; }
+  .node { position:relative; min-height:154px; padding:19px; border:1px solid var(--line); border-radius:15px; background:linear-gradient(145deg,#142844,var(--panel)); box-shadow:0 16px 36px #0005; }
+  .node:not(:last-child)::after { content:"→"; position:absolute; right:-22px; top:52px; color:var(--mint); font-size:27px; font-weight:800; }
+  .node strong { display:block; color:var(--mint); font-size:1.04rem; margin-bottom:8px; }
+  .node span { color:var(--muted); font-size:.92rem; }
+  .proof { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+  article { border:1px solid var(--line); border-radius:15px; padding:22px; background:#0d1b30; }
+  article h3 { margin:0 0 8px; color:var(--amber); }
+  article p { margin:0; }
+  .boundary { margin-top:26px; padding:22px; border-left:4px solid var(--mint); background:#0c1b2f; color:var(--muted); }
+  code { color:#d6e7ff; }
+  @media (max-width:980px) { .flow { grid-template-columns:repeat(2,1fr); } .node::after { display:none; } }
+  @media (max-width:640px) { .flow,.proof { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
-<h2>Trace — Multi-Agent Router Architecture</h2>
-<div class="mermaid">
-graph TD
-    E["🔔 GitLab Event<br/>(issue, MR, merge, mention)"] --> TR["🧠 Triage Router<br/>classifies context, dispatches"]
+<main>
+  <header>
+    <div class="live">Current production path</div>
+    <h1>Trace architecture</h1>
+    <p>GitHub-native institutional memory, with CockroachDB as the recovery source and Amazon Bedrock as the constrained reasoning layer.</p>
+  </header>
 
-    TR -->|"issue created"| SF["🔮 SPECFORGE<br/>Pre-mortem + Spec"]
-    TR -->|"open MR"| GK["🛡️ GUARDKEEPER<br/>5-Layer MR Review"]
-    TR -->|"trace: command"| RH["🔄 REPLY_HANDLER<br/>Memory Evolution"]
-    TR -->|"merged MR"| LK["📝 Tracekeeper<br/>Decision + Pattern Extraction"]
-    TR -->|"health/audit"| LC["📊 Tracecast<br/>Health + Carbon + Graph"]
-    TR -->|"onboard"| OB["👋 ONBOARDING<br/>New Member Briefing"]
-    TR -->|"commit/push"| CK["📋 COMMITKEEPER<br/>Commit Ledger"]
+  <section class="flow" aria-label="Trace production request flow">
+    <div class="node"><strong>1. GitHub</strong><span>Signed issue and pull-request webhooks. HMAC, tenant, size, bot-loop, and replay checks fail closed.</span></div>
+    <div class="node"><strong>2. CockroachDB</strong><span>An agent task and outbox event commit atomically. Idempotency survives retries and process crashes.</span></div>
+    <div class="node"><strong>3. SQS FIFO</strong><span>Encrypted durable delivery with bounded attempts, deduplication, DLQ retention, and CloudWatch alarms.</span></div>
+    <div class="node"><strong>4. Retrieval</strong><span>Vector candidates plus file scope, confidence, security relevance, feedback, and recorded selection provenance.</span></div>
+    <div class="node"><strong>5. Bedrock</strong><span>Titan creates 1024-dimensional embeddings. Anthropic Claude returns schema-constrained reasoning.</span></div>
+    <div class="node"><strong>6. Governed result</strong><span>Trace posts an attributable review or stores an ACTIVE/SUPERSEDED memory without erasing history.</span></div>
+  </section>
 
-    SA1["💬 Trace Ask<br/>@mention agent"] -.->|"standalone"| WIKI
-    SA2["📦 Trace Migrate<br/>@mention agent"] -.->|"standalone"| WIKI
+  <div class="boundary"><strong>Recovery boundary:</strong> CockroachDB is authoritative for tasks, memories, provenance, retrievals, audit events, and the transactional outbox. A GitHub delivery is not admitted until durable state commits.</div>
 
-    SF --> WIKI["📚 Wiki Memory<br/>TRACE-INDEX + TRACE-MEMORY pages"]
-    GK --> WIKI
-    RH --> WIKI
-    LK --> WIKI
-    LK --> MB["📋 Memory Bank Issue<br/>+ Pattern Rules + Changelog"]
-    LC --> WIKI
-    OB --> WIKI
+  <h2>CockroachDB integration judges can verify</h2>
+  <section class="proof">
+    <article><h3>Distributed Vector Indexing</h3><p>The canonical schema configures a tenant/repository-prefixed distributed vector index over <code>VECTOR(1024)</code> embeddings. The small proof corpus used a primary-key scan, so Trace does not claim optimizer index selection for that run.</p></article>
+    <article><h3>Managed MCP</h3><p>OAuth is restricted to Read Data. The live MCP surface retrieves the exact <code>TRACE-MEMORY-00401</code> and retrieval <code>8033c0ed-9596-4aeb-ba95-e31d5825ac34</code> records from CockroachDB.</p></article>
+    <article><h3>Serializable lifecycle</h3><p>Memory supersession, task state, provenance, and outbox publication remain tenant-scoped and transactionally consistent under CockroachDB serialization retries.</p></article>
+  </section>
 
-    GK -->|"Layer 1"| L1["Memory Conflicts"]
-    GK -->|"Layer 2"| L2["Promise Verification"]
-    GK -->|"Layer 3"| L3["Security Sentinel"]
-    GK -->|"Layer 4"| L4["Code Intelligence"]
-    GK -->|"Layer 5"| L5["Pattern Enforcement"]
-
-    CLI["🔧 trace-cli<br/>sync · validate · stats · dashboard"] --> WIKI
-    CLI --> MB
-    CI["⚙️ GitLab CI/CD<br/>test · sync · catalog · pages"] --> CLI
-
-    style TR fill:#e94560,color:#fff,stroke:none
-    style SF fill:#0f3460,color:#fff,stroke:none
-    style GK fill:#0f3460,color:#fff,stroke:none
-    style RH fill:#0f3460,color:#fff,stroke:none
-    style LK fill:#0f3460,color:#fff,stroke:none
-    style LC fill:#0f3460,color:#fff,stroke:none
-    style OB fill:#0f3460,color:#fff,stroke:none
-    style CK fill:#0f3460,color:#fff,stroke:none
-    style SA1 fill:#533483,color:#fff,stroke:none
-    style SA2 fill:#533483,color:#fff,stroke:none
-    style WIKI fill:#1a5276,color:#fff,stroke:none
-    style MB fill:#1a5276,color:#fff,stroke:none
-    style CLI fill:#1e8449,color:#fff,stroke:none
-    style CI fill:#1e8449,color:#fff,stroke:none
-    style L1 fill:#7d3c98,color:#fff,stroke:none
-    style L2 fill:#7d3c98,color:#fff,stroke:none
-    style L3 fill:#7d3c98,color:#fff,stroke:none
-    style L4 fill:#7d3c98,color:#fff,stroke:none
-    style L5 fill:#7d3c98,color:#fff,stroke:none
-    style E fill:#e94560,color:#fff,stroke:none
-</div>
-<script>mermaid.initialize({theme: 'dark', themeVariables: {fontSize: '14px'}});</script>
-
-<h2 style="margin-top:50px;">GUARDKEEPER — 5-Layer Analysis</h2>
-<div class="mermaid">
-graph LR
-    MR["MR Opened"] --> G["🛡️ GUARDKEEPER"]
-    G --> L1["Layer 1<br/>Memory Conflicts<br/>wiki decisions vs diff"]
-    G --> L2["Layer 2<br/>Promise Check<br/>issue claims vs code"]
-    G --> L3["Layer 3<br/>Security Sentinel<br/>auth, crypto, injection"]
-    G --> L4["Layer 4<br/>Code Intelligence<br/>deps, patterns, drift"]
-    G --> L5["Layer 5<br/>Pattern Enforcement<br/>reviewer rules vs diff"]
-    L1 --> OUT["ONE comment<br/>with all findings"]
-    L2 --> OUT
-    L3 --> OUT
-    L4 --> OUT
-    L5 --> OUT
-
-    style MR fill:#e94560,color:#fff,stroke:none
-    style G fill:#0f3460,color:#fff,stroke:none
-    style L1 fill:#7d3c98,color:#fff,stroke:none
-    style L2 fill:#7d3c98,color:#fff,stroke:none
-    style L3 fill:#7d3c98,color:#fff,stroke:none
-    style L4 fill:#7d3c98,color:#fff,stroke:none
-    style L5 fill:#7d3c98,color:#fff,stroke:none
-    style OUT fill:#1e8449,color:#fff,stroke:none
-</div>
-
-<h2 style="margin-top:50px;">Trace Lifecycle — From Issue to Onboarding</h2>
-<div class="mermaid">
-graph LR
-    I["📋 Issue Created"] -->|"SPECFORGE"| PM["Pre-mortem<br/>+ Spec"]
-    PM -->|"developer replies"| FU["FOLLOW-UP<br/>Risk Level"]
-    FU -->|"MR opened"| GK["GUARDKEEPER<br/>5-Layer Review"]
-    GK -->|"trace: intentional"| RH["REPLY_HANDLER<br/>Memory Evolves"]
-    RH -->|"MR merged"| LK["Tracekeeper<br/>Decisions + Patterns<br/>+ Changelog"]
-    LK -->|"on demand"| LC["Tracecast<br/>Health + Carbon"]
-    LC -->|"new member"| OB["ONBOARDING<br/>Full Briefing"]
-
-    style I fill:#e94560,color:#fff,stroke:none
-    style PM fill:#0f3460,color:#fff,stroke:none
-    style FU fill:#0f3460,color:#fff,stroke:none
-    style GK fill:#0f3460,color:#fff,stroke:none
-    style RH fill:#0f3460,color:#fff,stroke:none
-    style LK fill:#0f3460,color:#fff,stroke:none
-    style LC fill:#0f3460,color:#fff,stroke:none
-    style OB fill:#0f3460,color:#fff,stroke:none
-</div>
+  <h2>Public judge surface</h2>
+  <section class="proof">
+    <article><h3>AWS judge console</h3><p>The deployed console exposes live read-only counts, recent task state, and <code>/api/status</code>. It defines no write route and sends no-store and browser-hardening headers.</p></article>
+    <article><h3>Immutable live proof</h3><p>PR #4 → <code>TRACE-MEMORY-00401</code> → PR #5 → Guardkeeper rejection is cross-linked by source, task, retrieval, and comment identifiers.</p></article>
+    <article><h3>Honest failure state</h3><p>If a cloud dependency is unavailable, the demo labels captured real evidence as REPLAY. Fixtures are never presented as live results.</p></article>
+  </section>
+</main>
 </body>
 </html>

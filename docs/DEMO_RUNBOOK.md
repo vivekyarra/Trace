@@ -1,69 +1,72 @@
 # Trace judge demo runbook
 
-Target length: 4 minutes. Use a dedicated demo repository and synthetic decision text. Do not show secrets, connection strings, tokens, AWS account IDs, or raw customer code.
+Target length: **2 minutes 40 seconds**. Hard stop at **2:45**; never submit a cut at or above 3:00. Use the isolated PR #4/#5 demo history. Do not show secrets, connection strings, tokens, AWS account IDs, or raw customer code.
 
 ## Preflight — must be green
 
 ```text
-[ ] Feature-branch CI succeeded for the exact demo SHA
-[ ] Main/release CI succeeded for the exact release SHA
-[ ] GET /healthz returns {"status":"ok"}
-[ ] Judge console shows pending_outbox = 0 and dead_lettered_tasks = 0
-[ ] SQS main queue and DLQ both begin at depth 0
-[ ] Bedrock model access succeeds in the deployment region
-[ ] GitHub webhook recent delivery is HTTP 202 or an intentional duplicate HTTP 200
+[ ] Main CI succeeded for the exact release SHA
+[ ] Public AWS judge-console URL opens in a signed-out browser
+[ ] PR #4 and PR #5 are visible without authentication
+[ ] CockroachDB Managed MCP is authorized with Read Data only
+[ ] Managed MCP retrieves TRACE-MEMORY-00401 and retrieval 8033c0ed-9596-4aeb-ba95-e31d5825ac34
+[ ] No secret, connection string, token, AWS account ID, or private console URL is visible
 ```
 
-If any check fails, label the segment `REPLAY` and use a previously captured real run. Never describe fixture values as live.
+If any live check fails, label that segment `REPLAY` and use the previously captured real result. Never describe fixture values as live.
 
 ## Script and clicks
 
-### 0:00–0:30 — The problem
+### 0:00–0:12 — The problem
 
-Open the repository pull request containing a deliberate retry-policy conflict.
+Open [PR #4](https://github.com/vivekyarra/Trace/pull/4), already merged into the isolated demo base.
 
-Say: “This change looks reasonable in isolation. The team rejected it after an earlier retry storm, but that decision is buried in history. Trace makes that history active.”
+Say: “PR #4 records a non-negotiable authorization rule: permission changes must revoke cached access immediately.”
 
-### 0:30–1:10 — Canonical memory
+### 0:12–0:32 — The memory, live through Managed MCP
 
-Open the judge console. Point to active memories, security decisions, and zero pending/dead-letter counts. Open `/api/status` in a second tab to show the same live values as JSON.
+Use CockroachDB Managed MCP with read-only OAuth to retrieve the exact `TRACE-MEMORY-00401` row. Show its PR #4 source, ACTIVE state, Titan embedding provenance, and repository scope.
 
-Say: “This is not a generated dashboard fixture. These counts come read-only from CockroachDB, the canonical store.”
+Say: “This is a live read-only Managed MCP database call, not a fixture. CockroachDB stores the governed memory and its 1024-dimensional Titan embedding.”
 
-### 1:10–2:10 — Trigger Guardkeeper
+### 0:32–0:58 — PR #5 and Trace rejection
 
-Push or reopen the prepared pull request. In GitHub webhook deliveries, show the signed delivery succeeded. Then show SQS receive activity and refresh the console until the task is `SUCCEEDED`.
+Open [PR #5](https://github.com/vivekyarra/Trace/pull/5). Do **not** merge it. Jump directly to Trace’s Guardkeeper comment and highlight:
 
-Open the Trace review comment. Highlight:
+1. `TRACE-MEMORY-00401`;
+2. the PR #4 source citation;
+3. retrieval `8033c0ed-9596-4aeb-ba95-e31d5825ac34`;
+4. the rejection of the ten-minute stale authorization cache.
 
-1. the historical decision and evidence;
-2. the unfulfilled issue promise, if present;
-3. the deterministic security section;
-4. the `— Trace` signature.
+Say: “PR #5 looks plausible alone. Trace retrieves the governing decision, recognizes the semantic conflict, and rejects the stale authorization window before merge.”
 
-Say: “Claude performs the semantic reasoning, but deterministic security checks and strict output validation remain in control.”
+### 0:58–1:28 — Public AWS judge console
 
-### 2:10–3:05 — Explain the durable path
+Open the public AWS judge-console URL. Point to live counts, recent task status, retrieval count, zero pending outbox work, and zero dead-lettered tasks. Open `/api/status` only if it adds proof without slowing the cut.
 
-Show the architecture section in the README.
+Say: “The public read-only console is deployed on AWS and reads the same CockroachDB system of record. It exposes no write route.”
 
-Say: “GitHub is acknowledged only after one task and one outbox event commit together. A separate worker publishes to encrypted FIFO SQS. Retries are bounded. After the final attempt, the forensic envelope moves to the encrypted DLQ and an alarm fires.”
+### 1:28–2:08 — How the live path works
 
-### 3:05–3:40 — Memory after merge
+Show the current architecture diagram or README runtime flow: signed GitHub webhook → CockroachDB task/outbox transaction → encrypted SQS FIFO → Bedrock Claude/Titan → governed memory/review. Point out that CockroachDB provides Distributed Vector Indexing and read-only Managed MCP.
 
-Merge the prepared safe alternative or show a labelled real replay. Refresh the console and query the decision through the read-only MCP surface. Show source PR, confidence basis, lifecycle state, and governing repository scope.
+Say: “CockroachDB gives Trace serializable state, configured distributed vector indexing, and the Managed MCP surface you just saw. SQS makes processing durable; Bedrock supplies Titan embeddings and Claude reasoning.”
 
-Say: “Trace did not just summarize the pull request. It created a governed memory with provenance. A future override supersedes it without deleting the historical reason.”
+### 2:08–2:32 — Provenance and lifecycle
 
-### 3:40–4:00 — Close
+Return to the memory/retrieval record. Show source URL, selected state, model provenance, and the immutable IDs. State precisely that the current three-row `EXPLAIN` did not select the vector index; do not claim accelerated retrieval.
 
-Return to the console.
+Say: “Every conclusion remains attributable. Decisions can be superseded without erasing why they existed.”
 
-Say: “Coding assistants help teams write faster. Trace helps them remember why the code must be written this way.”
+### 2:32–2:40 — Close
+
+Return to PR #5.
+
+Say: “Coding agents help teams move faster. Trace stops them from repeating what the team already learned the hard way.”
 
 ## Failure fallback
 
-- GitHub delivery delayed: show delivery ID and task row, then use `REPLAY` evidence.
-- Bedrock throttled: show the bounded retry state; do not manually edit a successful result.
-- Queue failure: show CloudWatch alarm/DLQ only if it is a prepared synthetic failure.
-- Console unavailable: use `/api/status`; if both fail, stop claiming a live run.
+- Managed MCP delayed: use the already captured live MCP result and label it `REPLAY`.
+- Console unavailable: use `/api/status`; if both fail, do not record or submit until the AWS URL is restored.
+- Bedrock billing unavailable: show the immutable successful live record and label it `REPLAY`; never imply a fresh inference.
+- Editing rule: remove pauses before removing proof. Final exported duration must be 2:35–2:45.

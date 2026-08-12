@@ -9,7 +9,7 @@ The required path completed successfully:
 1. [PR A #4](https://github.com/vivekyarra/Trace/pull/4) merged into the isolated demo base at commit `7bd53303e786afd41c8fbc9b22147257387a1a2d`.
 2. Trace created `TRACE-MEMORY-00401` (`679be7b7-1476-4c7e-aacb-318f0cab3e80`) with PR-source provenance.
 3. Amazon Titan Text Embeddings V2 produced and CockroachDB stored the 1024-dimensional vector.
-4. Open [PR B #5](https://github.com/vivekyarra/Trace/pull/5) triggered indexed vector candidate retrieval followed by the production `HybridRanker` and Bedrock reranking.
+4. Open [PR B #5](https://github.com/vivekyarra/Trace/pull/5) triggered CockroachDB vector candidate retrieval backed by a configured distributed vector index, followed by the production `HybridRanker` and Bedrock reranking.
 5. Retrieval `8033c0ed-9596-4aeb-ba95-e31d5825ac34` selected the memory and Trace's Guardkeeper comment cited PR A.
 
 PR B remains open and `main` was not changed.
@@ -37,6 +37,7 @@ The successful live run occurred before commit `3f40f86`, and its textual `selec
 - Local: `python -m pytest -q` — 37 passed.
 - Local: `python -m ruff check trace_memory tests scripts` — passed.
 - GitHub Actions: [Verify Trace run 31519929892](https://github.com/vivekyarra/Trace/actions/runs/31519929892) — success on `3f40f86c811ef9fb3a92a1fe4d567243b3605d8c`.
-- Managed MCP independently read the live memory and retrieval rows using its read-only connection.
+- **CockroachDB Managed MCP (second CockroachDB tool):** Codex completed OAuth with **Read Data** only and independently read the live `TRACE-MEMORY-00401` memory and retrieval `8033c0ed-9596-4aeb-ba95-e31d5825ac34`. This is a live database tool call, not a screenshot or fixture.
+- **Vector-index precision:** the live schema has a configured distributed vector index, but the three-row `EXPLAIN` in [`vector-explain.txt`](vector-explain.txt) selected a primary-key scan. This evidence therefore does not claim that the optimizer selected the vector index or accelerated retrieval at that corpus size.
 
 The screenshots and their proof mapping are in [`screenshots/README.md`](../../screenshots/README.md).

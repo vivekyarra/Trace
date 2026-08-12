@@ -1,5 +1,9 @@
 # Trace v0.2.0 release evidence
 
+> # HISTORICAL PRE-LIVE VERIFICATION
+>
+> This record captures the repository before live cloud verification and is retained for audit history. Its external-blocker table is **not current release status**. For the successful GitHub → Amazon Bedrock → CockroachDB evidence chain, immutable identifiers, screenshots, and read-only Managed MCP verification, use the [live core proof](core-live-proof.md).
+
 Date: 2026-08-11 IST
 Base main SHA: `dd7d40d59b6a66d39c6fbdc212aa4c3dadba7ca7`
 
@@ -16,7 +20,7 @@ Base main SHA: `dd7d40d59b6a66d39c6fbdc212aa4c3dadba7ca7`
 | Diff integrity | PASS | `git diff --check` |
 | Container base | PASS | Docker registry resolved pinned Linux/amd64 Python 3.12.13 digest |
 
-## External gates
+## External gates at the time of this historical capture
 
 | Gate | State | Reason/evidence required |
 |---|---|---|
@@ -28,4 +32,4 @@ Base main SHA: `dd7d40d59b6a66d39c6fbdc212aa4c3dadba7ca7`
 | Live GitHub→SQS→Bedrock run | BLOCKED EXTERNALLY | Requires deployed endpoints and runtime secrets |
 | Main CI | PASS | Merge SHA `fff4e7b03621b6d8d602e8c9d1e52a38efaa420c`; run `31513023031` completed successfully |
 
-No blocked or pending gate is represented as passed. Update this record with immutable URLs/IDs when the corresponding external environment is available.
+No blocked or pending gate was represented as passed in this historical capture. The later successful live run is recorded separately in the [live core proof](core-live-proof.md), so earlier limitations are not confused with current evidence.
