@@ -1,41 +1,27 @@
-Phase 0 observed plan
+Final production-schema vector proof
+Captured: 2026-08-15
 Cluster: lucid-owlet (CockroachDB CCL v26.2.5)
-Database: defaultdb
 
-Statement:
-EXPLAIN SELECT id, embedding <=> '[1,0,0]' AS cosine_distance
-FROM trace_preflight_vectors
-WHERE organization_id = '00000000-0000-0000-0000-000000000001'
-  AND repository_id = '00000000-0000-0000-0000-000000000002'
-ORDER BY embedding <=> '[1,0,0]'
-LIMIT 3;
+Corpus
+  rows: 10,000
+  dimensions: 1,024
+  tenant: isolated benchmark organization/repository
+  query: the production materialized ANN stage used by MemoryRepository
 
-Observed output:
-distribution: local
-vectorized: true
+Observed EXPLAIN ANALYZE operator
+  vector search
+  table: memories@memories_embedding_vector_idx
+  prefix spans: exact organization_id and repository_id
+  full scan: false
 
-• top-k
-│ estimated row count: 3
-│ order: +cosine_distance
-│ k: 3
-│
-└── • render
-    │
-    └── • filter
-        │ estimated row count: 3
-        │ filter: (organization_id = '00000000-0000-0000-0000-000000000001')
-        │   AND (repository_id = '00000000-0000-0000-0000-000000000002')
-        │
-        └── • scan
-            │ estimated row count: 3 (100% of the table; stats collected 12 minutes ago)
-            │ table: trace_preflight_vectors@trace_preflight_vectors_pkey
-            │ spans: FULL SCAN
+Thirty repeated executions
+  client round trip (ms): min 70.66, median 79.51, p95 94.29, max 95.45
+  database execution (ms): min 76, median 79.5, p95 90, max 100
+  vector operator (ms): min 15, median 15.5, p95 20, max 20
 
-index recommendations: 1
-1. type: index creation
-   SQL command: CREATE INDEX ON defaultdb.public.trace_preflight_vectors
-     (organization_id, repository_id) STORING (embedding);
-
-Conclusion: the database accepted both the plain and prefixed vector indexes,
-but this tiny filtered corpus plans a primary-key full scan. This is not proof
-of vector-index acceleration.
+Conclusion
+  The realistic 10,000-row production-schema query uses
+  memories_embedding_vector_idx with tenant-prefix spans. This is positive
+  optimizer evidence, not the earlier three-row preflight scan. Database-only
+  execution and vector-operator timings are reported separately from client,
+  Lambda, and Managed MCP latency.

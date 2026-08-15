@@ -50,7 +50,7 @@
 
   <h2>CockroachDB integration judges can verify</h2>
   <section class="proof">
-    <article><h3>Distributed Vector Indexing</h3><p>The canonical schema configures a tenant/repository-prefixed distributed vector index over <code>VECTOR(1024)</code> embeddings. The small proof corpus used a primary-key scan, so Trace does not claim optimizer index selection for that run.</p></article>
+    <article><h3>Distributed Vector Indexing</h3><p>A 10,000-row production-schema proof over 1024-dimensional embeddings uses <code>memories_embedding_vector_idx</code> with exact organization/repository prefix spans and no full scan.</p></article>
     <article><h3>Managed MCP</h3><p>The read-only Trace Auditor joins <code>TRACE-MEMORY-00401</code> and retrieval <code>c12d9de4-0f8f-4c79-9b8b-1390b62c9590</code> to provenance, task, action, and consequence evidence.</p></article>
     <article><h3>Serializable lifecycle</h3><p>Memory supersession, task state, provenance, and outbox publication remain tenant-scoped and transactionally consistent under CockroachDB serialization retries.</p></article>
   </section>

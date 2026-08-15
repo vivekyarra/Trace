@@ -6,10 +6,10 @@ Verified on **2026-08-15** in AWS Asia Pacific (Mumbai), `ap-south-1`.
 
 **https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/**
 
-The public Lambda Function URL exposes a read-only product console. Clicking **Run Trace** performs a fresh path:
+The public Lambda Function URL exposes a read-only product console. Clicking **Run Trace** executes the tracked production pipeline:
 
 ```text
-Titan embedding → CockroachDB retrieval → Bedrock classification → consequence receipt
+Titan embedding → CockroachDB retrieval → Guardkeeper/Bedrock classification → consequence receipt
 ```
 
 The app contains no replay snapshot and never fabricates a result when a dependency fails. `/api/status` reports `primary_mode: live-read-only`, `replay_mode: false`, and `write_routes: 0`.
@@ -18,18 +18,24 @@ The app contains no replay snapshot and never fabricates a result when a depende
 
 | Field | Value |
 |---|---|
-| AWS service | Lambda + Lambda Function URL |
 | Function | `trace-judge-console` |
-| Runtime | Python 3.12 |
-| Region | `ap-south-1` |
+| Runtime / region | Python 3.12 / `ap-south-1` |
 | Source | [`infra/judge_console_lambda.py`](../../infra/judge_console_lambda.py) |
-| Reasoning primary | `apac.amazon.nova-pro-v1:0` |
-| Reasoning fallback | `mistral.mistral-large-2402-v1:0` |
+| Production pipeline | `trace_memory.agents.Guardkeeper` |
+| Code SHA-256 | `XBhcMs1T+Tb7m2/aHh+gvA83H6GSpN2adkFlL9GqxvI=` |
+| Reasoning primary / fallback | `apac.amazon.nova-pro-v1:0` / `mistral.mistral-large-2402-v1:0` |
 | Access | Public, read-only, no write route |
-| Rate limit | 12 requests per warm instance per minute |
-| Reserved concurrency | 2 concurrent Lambda environments |
+| Rate / concurrency | 12 requests per warm instance per minute / 2 reserved |
 | Cache policy | `no-store` |
 
-The production PR proof uses memory `TRACE-MEMORY-00401` and retrieval `c12d9de4-0f8f-4c79-9b8b-1390b62c9590`; the public Lambda runs the same read-only decision path on demand without creating database rows.
+The deployment uses the CockroachDB SQLAlchemy dialect, TLS `verify-full`, and the bundled Cockroach Cloud root certificate at `/var/task/certs/cockroach-root.crt`. The read-only database identity inherits `trace_mcp_reader`; it has no insert, update, or delete privileges.
 
-Final live check: `2026-08-15T13:02:57Z`. The preset completed in 2623 ms using `apac.amazon.nova-pro-v1:0`, returned `CONFLICT · HIGH`, and produced `memory_changed_review=true`. The deployed page used one 1280×529 viewport with no document scroll; the headline remained on one line and the Run action stayed visible.
+## Final live check
+
+At `2026-08-15T15:29:23Z` through `15:29:25Z`, all three presets returned HTTP 200 and `memory_changed_review=true`:
+
+- authorization revocation → `TRACE-MEMORY-00401`, `CONFLICT · HIGH`, 2203 ms;
+- durable command architecture → `TRACE-MEMORY-00402`, `CONFLICT · MEDIUM`, 1230 ms;
+- incident secret logging → `TRACE-MEMORY-00403`, `CONFLICT · HIGH`, 1355 ms.
+
+Every response identified pipeline `trace_memory.agents.Guardkeeper`; the Lambda contains no duplicate classification implementation.

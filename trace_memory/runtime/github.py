@@ -5,7 +5,8 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 from typing import Mapping, Protocol
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
@@ -21,6 +22,62 @@ SUPPORTED_EVENTS = {"issues", "issue_comment", "pull_request", "pull_request_rev
 
 class AdmissionStore(Protocol):
     def admit(self, task: AgentTask, event: OutboxEvent) -> bool: ...
+
+
+class AccessTokenProvider(Protocol):
+    def access_token(self) -> str: ...
+
+
+@dataclass
+class GitHubAppTokenProvider:
+    """Mint short-lived installation tokens so comments are posted by a bot."""
+
+    app_id: str
+    installation_id: str
+    private_key: str
+    api_url: str = "https://api.github.com"
+    timeout_seconds: int = 15
+    _token: str = field(default="", init=False, repr=False)
+    _refresh_at: float = field(default=0.0, init=False, repr=False)
+
+    def access_token(self) -> str:
+        if self._token and time.monotonic() < self._refresh_at:
+            return self._token
+        import jwt
+
+        now = int(time.time())
+        app_jwt = jwt.encode(
+            {"iat": now - 60, "exp": now + 540, "iss": self.app_id},
+            self.private_key.replace("\\n", "\n"),
+            algorithm="RS256",
+        )
+        endpoint = urlsplit(self.api_url)
+        if endpoint.scheme != "https" or endpoint.hostname != "api.github.com":
+            raise ValueError("GitHub API URL must be https://api.github.com")
+        request = Request(
+            f"{self.api_url}/app/installations/{self.installation_id}/access_tokens",
+            data=b"{}",
+            method="POST",
+            headers={
+                "Accept": "application/vnd.github+json",
+                "Authorization": f"Bearer {app_jwt}",
+                "X-GitHub-Api-Version": "2022-11-28",
+                "User-Agent": "trace-memory-runtime",
+            },
+        )
+        try:
+            with urlopen(request, timeout=self.timeout_seconds) as response:
+                payload = json.loads(response.read())
+        except HTTPError as error:
+            raise RuntimeError(
+                f"GitHub App token exchange failed with HTTP {error.code}"
+            ) from error
+        token = str(payload.get("token", ""))
+        if not token:
+            raise RuntimeError("GitHub App token exchange returned no token")
+        self._token = token
+        self._refresh_at = time.monotonic() + 50 * 60
+        return token
 
 
 def verify_github_signature(body: bytes, signature: str | None, secret: str) -> bool:
@@ -105,7 +162,7 @@ class GitHubWebhookRuntime:
 
 @dataclass(frozen=True)
 class GitHubClient:
-    token: str
+    token: str | AccessTokenProvider
     repository: str
     api_url: str = "https://api.github.com"
     timeout_seconds: int = 15
@@ -118,7 +175,7 @@ class GitHubClient:
         data = json.dumps(payload).encode() if payload is not None else None
         request = Request(
             f"{self.api_url}/repos/{self.repository}/{path.lstrip('/')}", data=data, method=method,
-            headers={"Accept": accept, "Authorization": f"Bearer {self.token}",
+            headers={"Accept": accept, "Authorization": f"Bearer {self._access_token()}",
                      "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "trace-memory-runtime"},
         )
         try:
@@ -130,6 +187,11 @@ class GitHubClient:
         except HTTPError as error:
             # Never include the token or an unbounded remote response in errors.
             raise RuntimeError(f"GitHub API {method} {path} failed with HTTP {error.code}") from error
+
+    def _access_token(self) -> str:
+        if isinstance(self.token, str):
+            return self.token
+        return self.token.access_token()
 
     def pull_request(self, number: int) -> dict[str, object]:
         return dict(self._request("GET", f"pulls/{number}"))
@@ -150,7 +212,18 @@ class GitHubClient:
         return patch[:500_000], len(patch) <= 500_000
 
     def issue_comments(self, number: int) -> list[dict[str, object]]:
-        return list(self._request("GET", f"issues/{number}/comments?per_page=100"))
+        comments: list[dict[str, object]] = []
+        page = 1
+        while True:
+            batch = list(
+                self._request(
+                    "GET", f"issues/{number}/comments?per_page=100&page={page}"
+                )
+            )
+            comments.extend(dict(comment) for comment in batch)
+            if len(batch) < 100:
+                return comments
+            page += 1
 
     def issue(self, number: int) -> dict[str, object]:
         return dict(self._request("GET", f"issues/{number}"))

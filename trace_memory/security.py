@@ -34,6 +34,9 @@ class RuntimeSettings:
     database_url: str
     github_webhook_secret: str
     github_token: str
+    github_app_id: str
+    github_app_installation_id: str
+    github_app_private_key: str
     github_repository: str
     sqs_queue_url: str
     sqs_dead_letter_queue_url: str
@@ -43,7 +46,7 @@ class RuntimeSettings:
     def from_env(cls) -> RuntimeSettings:
         required = {
             "database_url": "DATABASE_URL", "github_webhook_secret": "GITHUB_WEBHOOK_SECRET",
-            "github_token": "GITHUB_TOKEN", "github_repository": "GITHUB_REPOSITORY",
+            "github_repository": "GITHUB_REPOSITORY",
             "sqs_queue_url": "TRACE_SQS_QUEUE_URL",
             "sqs_dead_letter_queue_url": "TRACE_SQS_DLQ_URL",
         }
@@ -54,9 +57,27 @@ class RuntimeSettings:
             if not value:
                 missing.append(name)
             values[field] = value
+        values["github_token"] = os.environ.get("GITHUB_TOKEN", "").strip()
+        values["github_app_id"] = os.environ.get("GITHUB_APP_ID", "").strip()
+        values["github_app_installation_id"] = os.environ.get(
+            "GITHUB_APP_INSTALLATION_ID", ""
+        ).strip()
+        values["github_app_private_key"] = os.environ.get(
+            "GITHUB_APP_PRIVATE_KEY", ""
+        ).strip()
         if missing:
             raise ValueError(f"missing required settings: {', '.join(sorted(missing))}")
         validate_database_url(values["database_url"])
         if len(values["github_webhook_secret"]) < 32:
             raise ValueError("GITHUB_WEBHOOK_SECRET must be at least 32 characters")
+        app_values = (
+            values["github_app_id"],
+            values["github_app_installation_id"],
+            values["github_app_private_key"],
+        )
+        if not values["github_token"] and not all(app_values):
+            raise ValueError(
+                "configure GITHUB_APP_ID, GITHUB_APP_INSTALLATION_ID, and "
+                "GITHUB_APP_PRIVATE_KEY (or legacy GITHUB_TOKEN)"
+            )
         return cls(**values, aws_region=os.environ.get("AWS_REGION", "ap-south-1"))

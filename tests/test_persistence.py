@@ -19,6 +19,7 @@ def test_vector_query_is_tenant_prefixed_and_filters_active_memories() -> None:
     assert "repository_id = :repository_id" in source
     assert "status = 'ACTIVE'" in source
     assert "embedding <-> CAST(:embedding AS VECTOR)" in source
+    assert "WITH nearest AS MATERIALIZED" in source
 
 
 def test_migration_declares_canonical_vector_memory_and_outbox() -> None:
@@ -28,3 +29,14 @@ def test_migration_declares_canonical_vector_memory_and_outbox() -> None:
     assert "CREATE INDEX IF NOT EXISTS memories_semantic_key_idx" in migration
     assert "CREATE TABLE IF NOT EXISTS outbox_events" in migration
     assert "CREATE ROLE IF NOT EXISTS trace_app" in migration
+
+
+def test_runtime_role_has_no_delete_and_only_required_updates() -> None:
+    migration = Path("migrations/004_runtime_least_privilege.sql").read_text(
+        encoding="utf-8"
+    )
+    assert "REVOKE DELETE ON TABLE organizations" in migration
+    assert "REVOKE UPDATE ON TABLE organizations" in migration
+    assert "GRANT UPDATE ON TABLE memories, agent_tasks, outbox_events TO trace_app" in migration
+    assert "REVOKE INSERT ON TABLE organizations, repositories" in migration
+    assert "GRANT SELECT ON TABLE memory_feedback TO trace_mcp_reader" in migration

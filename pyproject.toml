@@ -12,6 +12,7 @@ dependencies = ["pydantic>=2.8,<3", "sqlalchemy>=2.0,<3"]
 [project.optional-dependencies]
 aws = ["boto3>=1.35,<2", "pg8000>=1.31,<2"]
 cockroach = ["psycopg[binary]>=3.2,<4", "psycopg2-binary>=2.9,<3", "sqlalchemy-cockroachdb>=2.0.2,<3"]
+github-app = ["PyJWT[crypto]>=2.9,<3"]
 test = ["pytest>=9.0.3,<10", "ruff>=0.12,<1"]
 
 [project.scripts]

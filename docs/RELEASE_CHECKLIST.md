@@ -15,10 +15,11 @@ Release candidate: `v0.2.0`
 
 ## Data and migration
 
-- [ ] A fresh CockroachDB database applies migrations 001 and 002.
-- [ ] A database already at 001 applies only 002.
+- [ ] A fresh CockroachDB database applies migrations 001 through 004.
+- [ ] An existing database applies each remaining migration exactly once.
 - [ ] Migration checksum drift is rejected.
 - [ ] Runtime uses `trace_app`; migration identity is separate.
+- [ ] Runtime roles cannot delete governed state and hold only their required insert/update grants.
 - [ ] Tenant-prefixed vector query plan uses `memories_embedding_vector_idx`.
 
 ## Runtime

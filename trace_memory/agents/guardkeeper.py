@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from time import perf_counter
 from typing import Protocol
 from uuid import UUID
 
@@ -47,6 +48,11 @@ class GuardkeeperReview(BaseModel):
     retrieval_event_id: UUID | None = None
     selected_memory_ids: list[str] = Field(default_factory=list)
     memory_consequence: MemoryConsequenceReceipt
+    candidate_count: int = Field(ge=0)
+    retrieval_latency_ms: int = Field(ge=0)
+    reasoning_latency_ms: int = Field(ge=0)
+    reasoning_model_id: str | None = None
+    final_action: str = Field(min_length=1)
     prompt_version: str = GUARDKEEPER_RERANK_V1.version
 
 
@@ -102,12 +108,16 @@ class Guardkeeper:
                     evidence="Detected directly in the proposed diff.",
                 ))
 
+        retrieval_started = perf_counter()
         candidates = self._candidates.vector_candidates(
             organization_id=organization_id, repository_id=repository_id,
             embedding=embedding, limit=20, include_relationships=True,
         )
+        retrieval_latency_ms = round((perf_counter() - retrieval_started) * 1000)
         ranked = self._ranker.rank(candidates, changed_paths=changed_paths or [])
+        reasoning_started = perf_counter()
         selected, reasons, llm_scores, final_action = self._select(ranked, candidates, diff)
+        reasoning_latency_ms = round((perf_counter() - reasoning_started) * 1000)
         by_display = {str(candidate["display_id"]): candidate for candidate in candidates}
         for memory_id in selected:
             candidate = by_display[memory_id]
@@ -162,6 +172,10 @@ class Guardkeeper:
         return GuardkeeperReview(
             findings=findings, retrieval_event_id=retrieval_event_id,
             selected_memory_ids=selected_ids, memory_consequence=consequence,
+            candidate_count=len(candidates), retrieval_latency_ms=retrieval_latency_ms,
+            reasoning_latency_ms=reasoning_latency_ms,
+            reasoning_model_id=getattr(self._reasoner, "model_id", None),
+            final_action=final_action,
         )
 
     def _select(self, ranked: list[RankedCandidate], candidates: list[dict[str, object]],

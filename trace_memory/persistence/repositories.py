@@ -21,7 +21,7 @@ from trace_memory.persistence.database import CockroachDatabase
 from trace_memory.retrieval import RankedCandidate
 
 
-def _vector(values: list[float] | None) -> str | None:
+def serialize_vector(values: list[float] | None) -> str | None:
     return None if values is None else "[" + ",".join(format(value, ".9g") for value in values) + "]"
 
 
@@ -32,7 +32,7 @@ class MemoryRepository:
     @staticmethod
     def _insert_memory(connection: Connection, memory: Memory) -> bool:
         params = memory.model_dump(mode="json")
-        params["embedding"] = _vector(memory.embedding)
+        params["embedding"] = serialize_vector(memory.embedding)
         result = connection.execute(text("""
             INSERT INTO memories (
                 id, organization_id, repository_id, display_id, memory_type, title, decision,
@@ -177,14 +177,21 @@ class MemoryRepository:
         """Retrieve active indexed candidates, then enrich them with scopes, feedback, and relationships."""
         with self._database.engine.connect() as connection:
             rows = [dict(row) for row in connection.execute(text("""
-                SELECT id, display_id, title, decision, rationale, confidence, security_relevant,
-                       embedding <-> CAST(:embedding AS VECTOR) AS vector_distance
-                FROM memories
-                WHERE organization_id = :organization_id AND repository_id = :repository_id
-                  AND status = 'ACTIVE' AND embedding IS NOT NULL
-                ORDER BY embedding <-> CAST(:embedding AS VECTOR) LIMIT :limit
+                WITH nearest AS MATERIALIZED (
+                    SELECT id, embedding <-> CAST(:embedding AS VECTOR) AS vector_distance
+                    FROM memories
+                    WHERE organization_id = :organization_id AND repository_id = :repository_id
+                    ORDER BY embedding <-> CAST(:embedding AS VECTOR)
+                    LIMIT :index_limit
+                )
+                SELECT m.id, m.display_id, m.title, m.decision, m.rationale, m.confidence,
+                       m.security_relevant, nearest.vector_distance
+                FROM nearest JOIN memories m ON m.id = nearest.id
+                WHERE m.status = 'ACTIVE' AND m.embedding IS NOT NULL
+                ORDER BY nearest.vector_distance LIMIT :limit
             """), {"organization_id": organization_id, "repository_id": repository_id,
-                   "embedding": embedding, "limit": limit}).mappings()]
+                   "embedding": embedding, "index_limit": min(max(limit * 5, limit), 100),
+                   "limit": limit}).mappings()]
             if not rows:
                 return []
             ids = [row["id"] for row in rows]
@@ -291,7 +298,7 @@ class MemoryRepository:
             UPDATE memories SET embedding = CAST(:embedding AS VECTOR), embedding_model = :model_id,
                 embedding_version = :version, embedded_at = :embedded_at, updated_at = now()
             WHERE id = :id
-        """), {"id": memory_id, "embedding": _vector(embedding), "model_id": model_id,
+        """), {"id": memory_id, "embedding": serialize_vector(embedding), "model_id": model_id,
                "version": version, "embedded_at": embedded_at}))
 
 

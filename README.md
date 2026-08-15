@@ -61,7 +61,7 @@ The receipt shows cloud-stage timings, retrieved candidates, selected memory IDs
 
 | Platform tool/service | What Trace actually does with it |
 |---|---|
-| **CockroachDB Distributed Vector Indexing** | Stores tenant-scoped 1024-dimensional Titan embeddings beside transactional memory, provenance, tasks, and audit state. The distributed vector index is configured; the small-corpus proof does not claim optimizer index selection. |
+| **CockroachDB Distributed Vector Indexing** | Stores tenant-scoped 1024-dimensional Titan embeddings beside transactional memory, provenance, tasks, and audit state. A 10,000-row, 1024-dimensional production-schema proof uses `memories_embedding_vector_idx` with exact tenant-prefix spans and no full scan. |
 | **CockroachDB Cloud Managed MCP Server** | Powers the read-only `Trace Auditor` agent, which joins the live `TRACE-MEMORY-00401` and retrieval `c12d9de4-0f8f-4c79-9b8b-1390b62c9590` records to provenance, task, action, and consequence evidence without a custom proxy. |
 | **Amazon Bedrock** | Titan Text Embeddings V2 creates memory/query vectors. Nova Pro is the schema-constrained reasoning primary and Mistral Large is the strong secondary; every receipt records the model that actually ran. |
 | **AWS Lambda** | Hosts the unrestricted public `Run Trace` app from tracked source in `infra/judge_console_lambda.py`; its primary route performs the live read path and exposes no write route. |
@@ -124,7 +124,7 @@ python -m ruff check trace_memory
 python -m compileall -q trace_memory
 ```
 
-The GitHub Actions workflow repeats those gates, validates both migrations, and audits installed Python dependencies.
+The GitHub Actions workflow repeats those gates, validates all migrations, builds the wheel and container, validates CloudFormation, and audits installed Python dependencies.
 
 ## Configuration
 
@@ -133,11 +133,11 @@ Copy `.env.template` into your secret manager, not into Git. Required settings a
 - `DATABASE_URL`: the `trace_app` CockroachDB connection using the `cockroachdb://` SQLAlchemy dialect and
   `sslmode=verify-full` remotely.
 - `TRACE_ORGANIZATION_ID` and `TRACE_REPOSITORY_ID`: canonical tenant IDs.
-- `GITHUB_REPOSITORY`, `GITHUB_TOKEN`, and a 32+ character `GITHUB_WEBHOOK_SECRET`.
+- `GITHUB_REPOSITORY`, a 32+ character `GITHUB_WEBHOOK_SECRET`, and either the GitHub App ID, installation ID, and private-key secret or a short-lived `GITHUB_TOKEN` override.
 - `TRACE_SQS_QUEUE_URL` and `TRACE_SQS_DLQ_URL`.
 - `AWS_REGION` and optional Bedrock model overrides.
 
-Use a GitHub App installation token in production. Grant only metadata/content read, issues read/write, and pull-request read permissions. Do not use a personal access token as a long-lived runtime credential.
+Trace mints and caches GitHub App installation tokens in production. Grant only metadata/content read and issues/pull-request read/write, and install the app only on the intended repository. Do not use a personal access token as a long-lived runtime credential.
 
 ## Database migrations
 

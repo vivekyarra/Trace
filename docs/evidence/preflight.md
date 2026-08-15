@@ -16,13 +16,13 @@ This is evidence, not an architecture claim. A capability marked **NOT VERIFIED*
 | Vector index | **VERIFIED** | `CREATE VECTOR INDEX trace_preflight_vectors_embedding_idx ON trace_preflight_vectors (embedding)` succeeded. |
 | Prefix vector-index syntax | **VERIFIED** | `CREATE VECTOR INDEX trace_preflight_vectors_prefix_idx ON trace_preflight_vectors (organization_id, repository_id, embedding)` succeeded. This is the tested tenant/repository-prefix form for this cluster version. |
 | Representative vector query | **VERIFIED** | A cosine-distance query over three vectors returned IDs `1`, `2`, `3` with distances `0`, `0.006116251198662548`, `1` respectively. |
-| `EXPLAIN` | **VERIFIED, negative result** | The tested three-row query plans a primary-key full scan, not either vector index. See `docs/evidence/vector-explain.txt`. Do **not** claim accelerated vector retrieval until a realistic corpus and plan demonstrate index selection. |
+| Production `EXPLAIN ANALYZE` | **VERIFIED, positive result** | The materialized production ANN query over 10,000 realistic 1024-dimensional rows uses `memories_embedding_vector_idx`, exact organization/repository prefix spans, and no full scan. Thirty database executions measured 79.5 ms median and 90 ms p95; the vector operator measured 15.5 ms median and 20 ms p95. See `docs/evidence/vector-explain.txt`. |
 | Managed MCP configuration | **VERIFIED** | Cloud Console generated Codex configuration for `https://cockroachlabs.cloud/mcp` with header `mcp-cluster-id: 9727d881-7fa9-4e9c-9e57-437e1afad9b7`; the same configuration is installed in the local Codex client. |
 | Managed MCP transport and OAuth discovery | **VERIFIED** | A live unauthenticated `initialize` request reached the endpoint and returned `401` with `WWW-Authenticate: Bearer`, resource metadata at `/.well-known/oauth-protected-resource/mcp`, and supported scopes `mcp:read`, `mcp:write`. This proves the managed endpoint and its authorization server are live. |
 | Managed MCP read-only tool call | **VERIFIED** | Codex completed the CockroachDB Cloud OAuth flow with **Read Data** only; Write Data remained unchecked. A live `cockroachdb-cloud/list_databases` MCP call then returned `defaultdb`. |
 | Read-only database access | **VERIFIED** | An independently connected temporary SQL login inherited only `trace_preflight_readonly`: `SELECT count(*)` returned `3`; an `INSERT` failed with `does not have INSERT privilege`. The temporary user and password were removed immediately after the probe. |
 
-### Test objects
+### Historical test objects
 
 The following isolated test objects remain in `defaultdb.public` so that subsequent preflight and implementation work can inspect the same results:
 
@@ -32,7 +32,7 @@ trace_preflight_vectors_embedding_idx
 trace_preflight_vectors_prefix_idx
 ```
 
-They contain only three synthetic vectors and no application or personal data. They may be dropped after durable migration tests replace them.
+They contain only three synthetic vectors and no application or personal data. That early scan was a syntax preflight only and has been superseded by the isolated 10,000-row production-schema benchmark.
 
 ### Managed MCP configuration
 
@@ -44,7 +44,7 @@ claude mcp add cockroachdb-cloud https://cockroachlabs.cloud/mcp \
   --header "mcp-cluster-id: 9727d881-7fa9-4e9c-9e57-437e1afad9b7"
 ```
 
-The required next verification is to authenticate with **read-only** consent, then invoke a non-mutating MCP tool such as schema listing or `EXPLAIN`.
+Read-only consent and non-mutating schema/query calls were subsequently verified in the final Managed MCP audit.
 
 ## AWS
 
@@ -92,4 +92,4 @@ The working tree is the `vivekyarra/Trace` GitHub repository. `main` is the repo
 
 ## Remaining Phase 0 gates
 
-1. Before claiming vector-index acceleration, rerun `EXPLAIN` against a realistic corpus; the current three-row plan deliberately does not establish that claim.
+None. The realistic vector-index proof and read-only Managed MCP audit supersede the earlier open gates.
