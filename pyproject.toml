@@ -4,14 +4,35 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lore-memory"
-version = "0.1.0a1"
+version = "0.2.0"
 description = "LORE's CockroachDB-backed institutional memory runtime"
 requires-python = ">=3.12"
 dependencies = ["pydantic>=2.8,<3", "sqlalchemy>=2.0,<3"]
 
 [project.optional-dependencies]
-test = ["pytest>=8,<9"]
+aws = ["boto3>=1.35,<2"]
+cockroach = ["psycopg[binary]>=3.2,<4"]
+test = ["pytest>=9.0.3,<10", "ruff>=0.12,<1"]
+
+[project.scripts]
+lore-runtime = "lore.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lore", "lore.*"]
+exclude = ["legacy*", "lore-cli*", "tests*"]
+
+[tool.setuptools.data-files]
+"share/lore/migrations" = ["migrations/*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]

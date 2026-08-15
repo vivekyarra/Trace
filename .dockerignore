@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+.env*
+__pycache__
+*.pyc
+.pytest_cache
+legacy
+lore-cli
+tests
+docs
+public
+examples

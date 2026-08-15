@@ -1,0 +1,9 @@
+include LICENSE README.md pyproject.toml
+recursive-include lore *.py
+recursive-include migrations *.sql
+prune docs
+prune legacy
+prune lore-cli
+prune src
+prune tests
+global-exclude __pycache__ *.py[cod]

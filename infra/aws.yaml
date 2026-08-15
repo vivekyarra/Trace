@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: LORE durable task queue, dead-letter queue, alarms, and runtime IAM policy
+
+Parameters:
+  RuntimeRoleName:
+    Type: String
+    Description: Existing ECS or App Runner task role that runs LORE
+  AlarmTopicArn:
+    Type: String
+    Description: SNS topic for production alerts
+  BedrockReasoningModelArn:
+    Type: String
+  BedrockEmbeddingModelArn:
+    Type: String
+
+Resources:
+  LoreDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: lore-tasks-dlq.fifo
+      FifoQueue: true
+      ContentBasedDeduplication: false
+      KmsMasterKeyId: alias/aws/sqs
+      MessageRetentionPeriod: 1209600
+
+  LoreTaskQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: lore-tasks.fifo
+      FifoQueue: true
+      ContentBasedDeduplication: false
+      DeduplicationScope: messageGroup
+      FifoThroughputLimit: perMessageGroupId
+      KmsMasterKeyId: alias/aws/sqs
+      VisibilityTimeout: 180
+      MessageRetentionPeriod: 345600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt LoreDeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  LoreRuntimePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: lore-runtime-least-privilege
+      Roles: [!Ref RuntimeRoleName]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: [sqs:SendMessage, sqs:ReceiveMessage, sqs:DeleteMessage, sqs:ChangeMessageVisibility, sqs:GetQueueAttributes]
+            Resource: [!GetAtt LoreTaskQueue.Arn]
+          - Effect: Allow
+            Action: [bedrock:InvokeModel]
+            Resource: [!Ref BedrockReasoningModelArn, !Ref BedrockEmbeddingModelArn]
+
+  LoreDeadLetterAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: LORE has poison tasks requiring operator review
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{Name: QueueName, Value: !GetAtt LoreDeadLetterQueue.QueueName}]
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopicArn]
+
+  LoreOldestMessageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: LORE task processing is delayed by more than five minutes
+      Namespace: AWS/SQS
+      MetricName: ApproximateAgeOfOldestMessage
+      Dimensions: [{Name: QueueName, Value: !GetAtt LoreTaskQueue.QueueName}]
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 5
+      Threshold: 300
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopicArn]
+
+Outputs:
+  QueueUrl: {Value: !Ref LoreTaskQueue}
+  QueueArn: {Value: !GetAtt LoreTaskQueue.Arn}
+  DeadLetterQueueUrl: {Value: !Ref LoreDeadLetterQueue}

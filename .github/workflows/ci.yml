@@ -9,21 +9,53 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: verify-lore-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Python 3.12 tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
       - name: Install runtime and test dependencies
-        run: python -m pip install -e ".[test]"
-      - name: Run canonical-memory tests
-        run: python -m pytest
+        run: |
+          python -m pip install -e ".[aws,cockroach,test]"
+          python -m pip install -e ./lore-cli
+      - name: Run all runtime and legacy-compatibility tests
+        run: python -m pytest tests lore-cli/tests
+      - name: Static and bytecode checks
+        run: |
+          python -m ruff check lore
+          python -m compileall -q lore
+      - name: Build and smoke-test the installed artifact
+        run: |
+          python -m pip install "build>=1.2,<2"
+          python -m build
+          python -m venv /tmp/lore-wheel
+          /tmp/lore-wheel/bin/python -m pip install dist/lore_memory-0.2.0-py3-none-any.whl
+          /tmp/lore-wheel/bin/lore-runtime --help
       - name: Check migration shape
         run: |
           test -f migrations/001_canonical_memory.sql
+          test -f migrations/002_runtime_operations.sql
           grep -q "CREATE VECTOR INDEX" migrations/001_canonical_memory.sql
           grep -q "VECTOR(1024)" migrations/001_canonical_memory.sql
+          grep -q "schema_migrations" migrations/002_runtime_operations.sql
+      - name: Validate AWS infrastructure
+        run: |
+          python -m pip install "cfn-lint>=1.38,<2"
+          cfn-lint infra/aws.yaml
+      - name: Build and smoke-test the runtime image
+        run: |
+          docker build --tag "lore:${GITHUB_SHA}" .
+          docker run --rm "lore:${GITHUB_SHA}" --help
+      - name: Audit Python dependencies
+        run: |
+          python -m pip install "pip-audit>=2.9,<3"
+          python -m pip_audit --skip-editable

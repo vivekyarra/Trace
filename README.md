@@ -1,277 +1,148 @@
 # LORE — Living Organisational Record Engine
 
-**Most AI coding tools help you write code faster. LORE prevents you from writing the wrong code in the first place.**
+LORE is institutional memory for software teams. It observes GitHub issues and pull requests, retrieves the decisions that govern the affected code, uses Anthropic Claude on Amazon Bedrock to reason about conflicts and promises, and stores the resulting memory and provenance in CockroachDB.
 
-LORE is a multi-agent system on the GitLab Duo Agent Platform that gives your codebase institutional memory. It captures every architectural decision your team makes — from both code reviews AND the actual diffs — predicts failures before code is written, verifies that developers keep their promises, catches security regressions, enforces coding conventions from past reviews, and generates onboarding briefings for new team members.
+It is built for one uncomfortable truth: teams rarely repeat failures because nobody cared. They repeat them because the reason behind yesterday's decision disappeared into a review thread.
 
-Zero manual effort. Powered by Anthropic Claude.
+## What is production-ready here
 
-## The Problem
+- CockroachDB is the canonical store. The schema includes tenant-scoped 1024-dimensional vector search, memory lifecycle and relationships, provenance, retrieval traces, audit events, agent tasks, and a transactional outbox.
+- GitHub webhook ingress verifies `X-Hub-Signature-256`, rejects oversized or cross-repository payloads, ignores bot loops, and admits each delivery exactly once.
+- The outbox publisher and SQS worker use durable task state, bounded retries, FIFO deduplication, and an encrypted dead-letter queue.
+- Anthropic Claude reasoning and Titan embeddings run through Amazon Bedrock. Every model response is schema-validated before it can affect stored state.
+- Guardkeeper always runs deterministic security checks even if model reasoning is unavailable.
+- The read-only judge console exposes live counts, recent task state, health, and evidence without a write route.
+- Legacy wiki memories can be imported idempotently, and SQL migrations are checksum-tracked.
+- Logs are structured and recursively redact secret-bearing fields; operational counters use Prometheus text format.
 
-Teams don't break architecture because they're careless. They break it because:
+The original GitLab Duo flow, standalone agents, and `lore-cli` remain in the repository as compatibility/reference assets. The durable cloud runtime in `lore/` is GitHub-native.
 
-- The people who understood the original decisions leave
-- Decisions are buried in MR comment threads nobody can find
-- Six months later, someone re-introduces the exact pattern the team rejected
-- Reviewer feedback gets repeated on every MR because nobody remembers the last one
-- New team members have no way to learn what was decided and why
+## Runtime flow
 
-Every ADR tool requires someone to manually write decisions down. Nobody does. The decisions that matter most — the ones made in passing during code review — are the ones that get lost.
-
-## How LORE Works
-
-LORE follows your work through the entire development lifecycle — from issue to production — and gets smarter with every merge.
-
-```
-                         ┌──────────────┐
-    Event arrives ──────>│ TRIAGE ROUTER │
-    (issue, MR, merge,   └──────┬───────┘
-     mention, schedule)         │ dispatches to specialized agent
-          ┌─────────┬───────────┼───────────┬──────────┬────────┐
-          v         v           v           v          v        v
-   ┌──────────┐┌──────────┐┌──────────┐┌─────────┐┌───────┐┌────────┐
-   │ PRE-     ││ MR       ││ DECISION ││ HEALTH  ││ONBOARD││ COMMIT │
-   │ MORTEM   ││ REVIEW   ││ EXTRACT  ││ AUDIT   ││  ING  ││ LEDGER │
-   │ + SPEC   ││ 5 Layers ││ + Carbon ││ + Graph ││       ││        │
-   └──────────┘└──────────┘└──────────┘└─────────┘└───────┘└────────┘
-
-   Standalone Agents:
-   ┌──────────────┐  ┌──────────────┐
-   │ LORE ASK     │  │ LORE MIGRATE │
-   │ Q&A from     │  │ Import past  │
-   │ memory       │  │ decisions    │
-   └──────────────┘  └──────────────┘
+```text
+GitHub webhook
+  → signature + tenant verification
+  → CockroachDB agent_tasks + outbox_events (one transaction)
+  → outbox worker
+  → encrypted SQS FIFO queue
+  → task worker
+  → GitHub context + CockroachDB hybrid retrieval
+  → Bedrock Claude/Titan
+  → review comment or governed memory
+  → audit/task/retrieval evidence
 ```
 
-### 1. Issue Created — Failure Prediction
+If any process crashes, the database remains the recovery source. A delivery cannot create two tasks, an outbox event cannot create two effective executions, and poison tasks are retained in the DLQ for operator review.
 
-When LORE is assigned to an issue, it searches your team's entire history for every time someone tried something similar. It finds the failures, predicts what will go wrong, asks hard technical questions, and generates a full engineering spec:
+## Repository map
 
-> *"Your team made a decision about this exact pattern. It was September 2025. A 2-hour auth bypass incident. Here's what happened, and here's what will go wrong again if you don't address it."*
-
-When the developer replies, LORE evaluates: vague answers get pushback with references to past incidents. Specific answers get a risk level. Every technical promise is recorded — because LORE will check the actual code against these exact words.
-
-### 2. MR Opened — Five-Layer Review
-
-Every open MR gets five layers of scrutiny in a single comment:
-
-**Layer 1: Memory Conflicts** — Semantic analysis of the diff against all stored decisions. Not keyword matching — LORE recognizes that "in-memory dict caching" IS "Redis caching on auth tokens" because the failure mode is identical. Cascading impact analysis when overriding a decision that other decisions depend on.
-
-**Layer 2: Promise Verification** — Reads the linked issue thread, extracts every specific technical claim the developer made, and verifies each one against the actual code. "You said 30-second TTL. Your code says 30 minutes. You promised pub/sub invalidation. I don't see it."
-
-**Layer 3: Security Sentinel** — Scans for security-sensitive patterns (auth, crypto, tokens, SQL, XSS, CORS, secrets). Catches SQL injection via string concatenation, MD5 for password hashing, `eval()` on untrusted data. Cross-references against past security decisions and flags regressions.
-
-**Layer 4: Code Intelligence** — Analyzes the actual diff for architectural patterns: new dependencies, API endpoints, schema changes, caching strategies. Cross-references against existing code-sourced memories and flags technology drift.
-
-**Layer 5: Code Pattern Enforcement** — Checks the diff against coding convention rules captured from past reviews. If a reviewer once said "don't use `Optional`, use `X | None`", LORE remembers and enforces it automatically. Reviewers never repeat themselves.
-
-Then LORE gives the developer three options:
-
-| Reply | What happens |
+| Path | Purpose |
 |---|---|
-| `lore: intentional — [reasoning]` | Override recorded. Memory updated with new reasoning. |
-| `lore: accidental` | Original decision stays. Developer revises code. |
-| `lore: discuss` | Original decision makers brought into the conversation. |
+| `lore/domain` | Strict canonical models and lifecycle invariants |
+| `lore/persistence` | CockroachDB transactions and repositories |
+| `lore/retrieval` | Explainable hybrid ranking |
+| `lore/ai` | Bedrock embedding and structured reasoning adapters |
+| `lore/agents` | Guardkeeper and governed supersession |
+| `lore/runtime` | GitHub admission, automation, outbox, and SQS workers |
+| `lore/server.py` | Webhook, health, and metrics HTTP ingress |
+| `lore/console.py` | Read-only judge console |
+| `migrations` | Ordered, checksum-tracked CockroachDB DDL |
+| `infra/aws.yaml` | SQS FIFO/DLQ, least-privilege IAM, and CloudWatch alarms |
+| `docs` | Architecture, operations, security, demo, Devpost, and release evidence |
 
-LORE doesn't block the merge. But it doesn't forget you saw the warning.
+## Local verification
 
-### 3. MR Merged — Decision Extraction
-
-After merge, LORE runs four extraction phases:
-
-- **Code Intelligence** — Reads the actual diff for structural changes, new patterns, and removals. Most architectural decisions are never discussed — someone just writes the code. LORE catches both.
-- **Discussion Extraction** — Captures confirmed decisions from MR comments with carbon impact estimates, incident type tags, and dependency links.
-- **Code Pattern Extraction** — Turns reviewer corrections into enforceable rules. "Don't use MD5" becomes a rule that's automatically checked on every future MR.
-- **Feature Changelog** — Generates a human-readable entry: what was built, files affected, dependencies changed. A living record of what was actually built.
-
-### 4. Memory Evolution
-
-Decisions aren't static. When a developer overrides a decision with `lore: intentional`, LORE doesn't argue — it updates. The old decision is superseded. The new one is active with the developer's reasoning on record. Dependency links transfer. And LORE checks whether the code actually matches the commitments — if you promise bcrypt but ship MD5, the memory records what you said versus what you did.
-
-### 5. Health Audit
-
-On demand: decision health report, sustainability report with carbon impact (kWh/month, CO2 equivalent, trees equivalent), ASCII knowledge graph of decision dependencies, security inventory with staleness warnings, and coverage gaps for files with no governing decisions.
-
-### 6. Onboarding
-
-Generates a complete briefing for new team members: security decisions first (non-negotiable), architecture decisions by file, performance decisions with carbon data, top 3 past incidents, key people table, and the last 10 changelog entries so new members see what was actually built.
-
-### 7. Conversational Search
-
-@mention LORE Ask and ask in natural language: "What decisions govern authentication?" LORE doesn't return search results. It answers like a teammate who was there — with specific decisions, dates, people, and reasoning.
-
-### 8. Cold-Start Import
-
-The biggest problem with any memory system: it's empty on day one. LORE Migrate scans your project's past merge requests, extracts architectural decisions from discussion threads, and writes them as LORE memories. One command, and your project has institutional memory from day one.
-
-## The Python CLI
-
-LORE includes `lore-cli`, a Python package with real engineering beyond prompts:
+Python 3.12 is required.
 
 ```bash
-lore validate    # Check memory format, field values, dependency integrity, circular deps
-lore stats       # JSON output: memory counts, carbon totals, security inventory, coverage
-lore sync        # Read memories from issue store, write to wiki pages, build LORE-INDEX
-lore dashboard   # Generate visual HTML dashboard with decision graphs and carbon tables
+python -m pip install -e ".[test]"
+python -m pip install -e ./lore-cli
+python -m pytest tests lore-cli/tests
+python -m ruff check lore
+python -m compileall -q lore
 ```
 
-**43 passing tests** covering validation logic, carbon math, dependency graph traversal (DFS cycle detection), and dashboard generation.
+The GitHub Actions workflow repeats those gates, validates both migrations, and audits installed Python dependencies.
 
-### Visual Dashboard
+## Configuration
 
-`lore dashboard` generates a self-contained HTML page with:
-- Summary cards: total memories, security count, carbon impact, pattern rules
-- Mermaid.js decision graph showing memory dependencies and blocks
-- Carbon impact table with savings/costs and CO2 equivalent
-- File coverage map showing which files have governing decisions
-- Security inventory with staleness warnings
-- Code pattern rules with bad/good examples
+Copy `.env.template` into your secret manager, not into Git. Required settings are:
 
-## CI/CD Pipeline
+- `DATABASE_URL`: the `lore_app` CockroachDB connection, using `sslmode=verify-full` remotely.
+- `LORE_ORGANIZATION_ID` and `LORE_REPOSITORY_ID`: canonical tenant IDs.
+- `GITHUB_REPOSITORY`, `GITHUB_TOKEN`, and a 32+ character `GITHUB_WEBHOOK_SECRET`.
+- `LORE_SQS_QUEUE_URL` and `LORE_SQS_DLQ_URL`.
+- `AWS_REGION` and optional Bedrock model overrides.
 
-```yaml
-stages:
-  - validate    # YAML syntax + 64 KiB catalog size check
-  - test        # pytest on lore-cli (43 tests)
-  - sync        # Publish to AI Catalog + sync memories to wiki
-  - pages       # Generate and deploy dashboard to GitLab Pages
-```
+Use a GitHub App installation token in production. Grant only metadata/content read, issues read/write, and pull-request read permissions. Do not use a personal access token as a long-lived runtime credential.
 
-## Architecture
+## Database and import
 
-LORE uses a multi-component router architecture on the GitLab Duo platform. A triage router inspects context (issue, MR state, keywords, reply commands) using read-only tools and dispatches to one of eight specialized agents:
-
-| Component | Purpose |
-|---|---|
-| Triage Router | Context classification and dispatch |
-| Pre-Mortem Agent | Issue analysis, failure prediction, spec generation |
-| MR Review Agent | Five-layer merge request analysis |
-| Reply Handler | Memory evolution via `lore:` commands |
-| Decision Extractor | Post-merge decision + pattern + changelog extraction |
-| Health Auditor | Decision health, carbon, knowledge graph |
-| Onboarding Agent | New member briefing generation |
-| Commit Keeper | Commit-level intelligence and ledger |
-
-Plus two standalone agents: **LORE Ask** (conversational search) and **LORE Migrate** (retroactive decision import).
-
-## Carbon & Sustainability Tracking
-
-Every decision includes a carbon impact estimate. LORE uses Anthropic Claude to reason about the compute implications of architectural decisions — a caching layer that eliminates database round-trips, a batch strategy that replaces individual queries, fixed retry intervals that prevent thundering herd cascades.
-
-Aggregated into sustainability reports: total kWh/month, CO2 equivalent (using IEA global average grid intensity of ~0.4 kg CO2/kWh), and trees equivalent (using EPA figure of ~21 kg CO2 absorbed per mature tree per year).
-
-These are order-of-magnitude estimates — not accounting-grade measurements. The goal is making energy cost visible in architectural decisions so teams can factor sustainability into trade-offs they're already making.
-
-## Why Anthropic Claude?
-
-This isn't "plug in any LLM." Every core LORE capability depends on things Claude specifically does well:
-
-- **Semantic conflict detection** — LORE doesn't keyword-match. When a dev introduces "in-memory dict caching," Claude recognizes this IS the same pattern as "Redis caching on auth tokens" because the failure mode is identical. No embedding similarity threshold gets this right.
-- **Long-context cross-MR pattern recognition** — Claude reads 50+ MR discussion threads in a single pass and spots that three different teams hit the same retry failure.
-- **Decision vs. noise discrimination** — MR threads are 90% "LGTM" and "nit: spacing." Claude distinguishes "we chose X because Y" from drive-by approvals.
-- **Promise verification** — Claude reads a developer's commitments on an issue ("we'll use 30-second TTL with pub/sub invalidation") and checks the actual code, line by line, against those exact promises.
-- **Security regression detection** — When someone replaces JWT validation with a "simpler" token check, Claude understands these are not equivalent security patterns.
-- **Opinionated voice** — Claude's instruction-following lets LORE speak as a slightly haunted senior engineer who has seen things break. The persona makes developers actually read the warnings.
-
-## Project Structure
-
-```
-lore/
-├── .gitlab/duo/flows/
-│   └── lore.yaml              # Multi-component flow (full prompts, 8 agents)
-├── flows/
-│   └── flow.yml               # AI Catalog flow (condensed, router architecture)
-├── agents/
-│   ├── lore-ask.yml           # LORE Ask — conversational memory search
-│   └── lore-migrate.yml       # LORE Migrate — cold-start decision importer
-├── lore-cli/                  # Python CLI package
-│   ├── pyproject.toml
-│   ├── lore_cli/
-│   │   ├── cli.py             # 4 subcommands: sync, validate, stats, dashboard
-│   │   ├── sync.py            # GitLab API integration + memory parser
-│   │   ├── validate.py        # Format checking + DFS cycle detection
-│   │   ├── stats.py           # Carbon math + aggregation
-│   │   └── dashboard.py       # HTML generator with Mermaid.js graphs
-│   └── tests/                 # 43 tests
-├── examples/
-│   └── sample-memories.txt    # Sample data for CLI demos
-├── docs/
-│   └── architecture.html      # Interactive architecture diagrams
-├── .gitlab-ci.yml             # CI: validate, test, sync, catalog, pages
-├── AGENTS.md                  # Memory format + architecture docs
-├── README.md
-└── LICENSE                    # MIT
-```
-
-## Tech Stack
-
-- **GitLab Duo Agent Platform** — Flow orchestration, triggers, event routing
-- **Anthropic Claude** — Semantic reasoning across all 8 agents
-- **GitLab Wiki** — Persistent memory storage (LORE-INDEX + memory pages)
-- **GitLab API** — MR diffs, discussions, issues, wiki, search
-- **Python** — CLI tools (sync, validate, stats, dashboard)
-- **Mermaid.js** — Decision graph visualization
-- **GitLab CI/CD** — Testing, catalog sync, Pages deployment
-
-## Setup
-
-### Prerequisites
-
-- GitLab project with GitLab Duo enabled
-- GitLab hosted runners enabled
-
-### Quick Start
+Apply all migrations with a DDL identity, never the `lore_app` runtime role:
 
 ```bash
-# 1. Push and tag
-git add . && git commit -m "LORE" && git tag v1.0.0
-git push origin main --tags
-
-# 2. Set up catalog sync token
-# Settings > Access Tokens — create with api scope
-# Settings > CI/CD > Variables — add as CATALOG_SYNC_TOKEN
-
-# 3. Enable triggers
-# Automate > Flows > LORE > enable: Pipeline, Assign, Mention, Reviewer
-
-# 4. Seed initial memory (or use LORE Migrate to scan past MRs)
-# Create wiki pages LORE-INDEX and LORE-MEMORY-001
-
-# 5. Install CLI (optional)
-pip install ./lore-cli
-lore dashboard --from-file examples/sample-memories.txt --output public/
+lore-runtime migrate
 ```
 
-## Memory Format
+Import a legacy LORE wiki export after setting the canonical organisation and repository IDs:
 
-```
-LORE Memory #001
-Source MR: !42 — Add retry logic
-Date: 2026-01-15
-Governs files: src/api/auth.py
-Decision: Use fixed retry intervals
-Rejected: Exponential backoff
-Reason: Thundering herd at 1000+ concurrent requests
-Future implication: No exponential backoff in retry logic
-Decided by: @alice, @bob
-Confidence: HIGH
-Status: Active
-Carbon impact: ~300 kWh/month saved
-Incident type: retry
-Depends on: N/A
-Blocks: Memory #003
-Source type: discussion
-Security relevant: no
+```bash
+lore-runtime import ./memory-export.md
+lore-runtime import ./memory-export.md --best-effort
 ```
 
-## Built for the GitLab AI Hackathon 2026
+Strict import validates the whole file before the first memory write. Best-effort mode reports malformed and duplicate records as skipped. Content hashes make a repeated import safe, and `import_runs` preserves the source checksum and outcome.
 
-Most submissions will be "AI writes better code." LORE is "AI prevents you from repeating your own mistakes."
+## Run the services
 
-It doesn't just remember decisions. It reads your code, catches your mistakes, checks your promises, enforces your reviewers' feedback, tracks your carbon footprint, and speaks like a senior engineer who has seen things break.
+Each process is independently scalable:
 
-Powered by Anthropic Claude for semantic reasoning, failure prediction, security analysis, and sustainability tracking.
+```bash
+lore-runtime webhook --host 0.0.0.0 --port 8000
+lore-runtime outbox-worker
+lore-runtime task-worker
+lore-runtime console --host 127.0.0.1 --port 8080
+```
 
-## License
+Webhook endpoints:
 
-MIT — see [LICENSE](LICENSE)
+- `POST /webhooks/github`
+- `GET /healthz`
+- `GET /metrics`
+
+The console exposes `GET /` and `GET /api/status`; both are read-only and send no-store and browser-hardening headers. Put authentication and TLS at the load balancer before exposing it beyond a trusted judge/operator network.
+
+## AWS deployment
+
+`infra/aws.yaml` provisions:
+
+- a KMS-encrypted FIFO task queue;
+- a KMS-encrypted FIFO DLQ with 14-day retention;
+- a least-privilege runtime IAM policy for those queues and the two configured Bedrock models;
+- DLQ-depth and oldest-message CloudWatch alarms.
+
+Deploy it with an existing ECS/App Runner task role, an SNS alarm topic, and exact model ARNs. Build the `Dockerfile` once and run the same image with the `webhook`, `outbox-worker`, and `task-worker` commands.
+
+## Failure semantics
+
+| Failure | Behaviour |
+|---|---|
+| Repeated GitHub delivery | Returns `200 duplicate`; no second task/outbox record |
+| Invalid signature or wrong repository | Fails closed before persistence |
+| CockroachDB serialization conflict | Retries only SQLSTATE `40001`, up to the configured bound |
+| SQS transient handler failure | Schedules bounded retry and changes visibility |
+| Third handler failure | Records `DEAD_LETTERED`, copies forensic envelope to DLQ, deletes source |
+| Bedrock malformed output | Rejects it before a comment or memory write |
+| Outbox crash after send | FIFO deduplication plus task idempotency prevents effective re-execution |
+
+## Demo and release evidence
+
+- [Demo runbook](docs/DEMO_RUNBOOK.md)
+- [Devpost submission](docs/DEVPOST_SUBMISSION.md)
+- [Operations and incident runbook](docs/OPERATIONS.md)
+- [Security model](SECURITY.md)
+- [Release verification](docs/RELEASE_CHECKLIST.md)
+
+Every demo step distinguishes live evidence from fixture data. No database, AWS, Bedrock, or GitHub result is claimed live until the corresponding preflight is green.
+
+— LORE
