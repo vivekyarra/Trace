@@ -81,7 +81,7 @@ class GitHub:
     def pull_request(self, number):
         if number == 7:
             return {"id": 700, "title": "Fix authorization revocation cache", "body": "Invalidate on revoke",
-                    "merged_at": "2026-08-11T10:00:00Z", "merge_commit_sha": "a" * 40,
+                    "merged_at": "2026-08-15T10:00:00Z", "merge_commit_sha": "a" * 40,
                     "html_url": "https://github.com/acme/trace/pull/7", "user": {"id": 1, "login": "alice"}}
         return {"id": 800, "title": "Add a faster authorization cache",
                 "body": "We will cache permissions", "merged_at": None,

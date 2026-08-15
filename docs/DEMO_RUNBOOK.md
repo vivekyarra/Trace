@@ -11,11 +11,11 @@ Target length: **2 minutes 40 seconds**. Hard stop at **2:45**. Use the isolated
 [ ] Preset PR #5 completes with a LIVE receipt
 [ ] Receipt shows Titan → CockroachDB → Bedrock classifier with fresh timings and the actual model ID
 [ ] TRACE-MEMORY-00401 is selected and the verdict is CONFLICT
-[ ] Replay snapshot remains labelled REPLAY and is not presented as fresh
+[ ] A failed dependency returns NOT_RUN and no result is fabricated
 [ ] No secret, connection string, token, or AWS account ID is visible
 ```
 
-If a live check fails, show the captured proof only with a visible `REPLAY` label. Never call a fixture or snapshot live.
+If a live check fails, stop recording and restore the live path. Never call a fixture or snapshot live.
 
 ## Script and clicks
 
@@ -33,16 +33,16 @@ Say: “This is reasonable if you only read today’s diff. It is dangerous if y
 
 ### 0:30–1:15 — Run the functional agent
 
-Open the [public AWS app](https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/). Keep the PR #5 preset selected and click **Run Trace live**.
+Open the [public AWS app](https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/). Keep the PR #5 preset selected and click **Run Trace**.
 
 While it runs, point to the four stages:
 
 1. fresh 1024-dimensional Titan embedding on Amazon Bedrock;
 2. tenant-scoped CockroachDB vector retrieval;
-3. schema-checked Bedrock conflict classification (Claude preferred; Nova truth-labelled fallback);
+3. schema-checked Bedrock conflict classification (Nova Pro primary; Mistral Large secondary);
 4. memory consequence receipt.
 
-Say: “This button is traversing the live read path now. The page is not holding the answer. Titan embeds this diff, CockroachDB returns the active governed candidates, and the Bedrock classifier may select only IDs that came from that candidate set. The receipt names whether Claude or the Nova fallback actually ran.”
+Say: “This button is traversing the live read path now. The page is not holding the answer. Titan embeds this diff, CockroachDB returns the active governed candidates, and the Bedrock classifier may select only IDs that came from that candidate set. The receipt records the model that actually ran.”
 
 ### 1:15–1:42 — Show the consequence, not just the answer
 
@@ -54,11 +54,11 @@ Say: “The receipt proves causality. Without this CockroachDB memory, the gover
 
 Show the README runtime diagram.
 
-Say: “In production, a signed GitHub webhook commits task and outbox state atomically in CockroachDB, SQS provides durable execution, Titan and Claude reason through Bedrock, and every retrieval and action remains attributable. Crashes and duplicate deliveries do not create duplicate effective work.”
+Say: “In production, a signed GitHub webhook commits task and outbox state atomically in CockroachDB, SQS provides durable execution, Titan and Nova Pro run through Bedrock, and every retrieval and action remains attributable. Crashes and duplicate deliveries do not create duplicate effective work.”
 
 ### 2:05–2:25 — Why CockroachDB
 
-Show the candidate details or the previously verified Read Data-only Managed MCP row.
+Open the `Trace Auditor` workspace agent and ask it to audit retrieval `c12d9de4-0f8f-4c79-9b8b-1390b62c9590`. Show its Read Data-only joined receipt.
 
 Say: “CockroachDB is not just a vector sidecar. It keeps vectors, provenance, lifecycle, dependencies, tasks, and audit truth together under serializable transactions. Managed MCP gives judges a second, direct read-only inspection path.”
 
@@ -70,8 +70,8 @@ Return to the verdict.
 
 Say: “Most submissions ask AI to write more code. Trace asks whether the code should exist at all. Your codebase does not just remember—it has a point of view.”
 
-## Failure fallback
+## Failure handling
 
-- If live Bedrock or CockroachDB fails, expand the fallback and show `REPLAY`; never imply a fresh run.
+- If live Bedrock or CockroachDB fails, the app shows `NO RESULT FABRICATED`; restore the dependency before recording.
 - If the app fails before recording, do not submit until `/healthz` and a preset live run pass again.
 - Remove pauses before removing proof. Final export should land between 2:35 and 2:45.

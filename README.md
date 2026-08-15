@@ -2,7 +2,7 @@
 
 Most AI coding tools help teams write code faster. **Trace prevents teams from writing the wrong code again.**
 
-Trace is institutional memory for software teams. It follows a change from issue to production, retrieves the decisions that govern the affected code, uses Anthropic Claude on Amazon Bedrock to reason about conflicts and promises, and stores the resulting memory, provenance, and lifecycle in CockroachDB.
+Trace is institutional memory for software teams. It follows a change from issue to production, retrieves the decisions that govern the affected code, uses a schema-constrained Amazon Bedrock model to reason about conflicts and promises, and stores the resulting memory, provenance, and lifecycle in CockroachDB.
 
 ## The problem
 
@@ -46,24 +46,24 @@ Trace follows the complete engineering lifecycle and gets more useful after ever
 
 ## Live functional demo — run the agent
 
-**[Open the public AWS app and click Run Trace live](https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/)**
+**[Open the public AWS app and click Run Trace](https://shnxi3k7h7natsglz6l3zxma6u0dpggz.lambda-url.ap-south-1.on.aws/)**
 
 Select the real PR #5 preset or paste a pull-request diff. Each click executes a fresh, read-only path:
 
 ```text
 PR diff → Titan 1024-D embedding → CockroachDB governed retrieval
-        → Claude conflict classification → memory consequence receipt
+        → Bedrock conflict classification → memory consequence receipt
 ```
 
-The receipt shows cloud-stage timings, retrieved candidates, selected memory IDs, the verdict, and the finding that would disappear without memory. If a cloud dependency is unavailable, the verified 2026-08-11 evidence appears only as an explicitly labelled `REPLAY` fallback. It is never substituted for a live result.
+The receipt shows cloud-stage timings, retrieved candidates, selected memory IDs, the verdict, and the finding that would disappear without memory. If a cloud dependency is unavailable, the app returns `NOT_RUN`; it contains no replay result.
 
 ### Required platform integrations
 
 | Platform tool/service | What Trace actually does with it |
 |---|---|
 | **CockroachDB Distributed Vector Indexing** | Stores tenant-scoped 1024-dimensional Titan embeddings beside transactional memory, provenance, tasks, and audit state. The distributed vector index is configured; the small-corpus proof does not claim optimizer index selection. |
-| **CockroachDB Cloud Managed MCP Server** | Uses OAuth **Read Data** only to retrieve the exact live `TRACE-MEMORY-00401` and retrieval `8033c0ed-9596-4aeb-ba95-e31d5825ac34` records directly from the cluster, with no custom proxy. |
-| **Amazon Bedrock** | Titan Text Embeddings V2 creates memory/query vectors. Anthropic Claude is the preferred schema-constrained classifier; the public app truthfully falls back to Amazon Nova when Anthropic Marketplace entitlement is unavailable and records the model that actually ran. |
+| **CockroachDB Cloud Managed MCP Server** | Powers the read-only `Trace Auditor` agent, which joins the live `TRACE-MEMORY-00401` and retrieval `c12d9de4-0f8f-4c79-9b8b-1390b62c9590` records to provenance, task, action, and consequence evidence without a custom proxy. |
+| **Amazon Bedrock** | Titan Text Embeddings V2 creates memory/query vectors. Nova Pro is the schema-constrained reasoning primary and Mistral Large is the strong secondary; every receipt records the model that actually ran. |
 | **AWS Lambda** | Hosts the unrestricted public `Run Trace` app from tracked source in `infra/judge_console_lambda.py`; its primary route performs the live read path and exposes no write route. |
 | **Amazon SQS, KMS, and CloudWatch** | FIFO delivery, encrypted DLQ retention, bounded retries, and operational alarms make the agent path durable and observable. |
 
@@ -74,13 +74,20 @@ It is built for one uncomfortable truth: teams rarely repeat failures because no
 - CockroachDB is the canonical store. The schema includes tenant-scoped 1024-dimensional vector search, memory lifecycle and relationships, provenance, retrieval traces, audit events, agent tasks, and a transactional outbox.
 - GitHub webhook ingress verifies `X-Hub-Signature-256`, rejects oversized or cross-repository payloads, ignores bot loops, and admits each delivery exactly once.
 - The outbox publisher and SQS worker use durable task state, bounded retries, FIFO deduplication, and an encrypted dead-letter queue.
-- Anthropic Claude reasoning and Titan embeddings run through Amazon Bedrock. Every model response is schema-validated before it can affect stored state.
+- Bedrock reasoning and Titan embeddings run through Amazon Bedrock. Every model response is schema-validated before it can affect stored state.
 - Guardkeeper always runs deterministic security checks even if model reasoning is unavailable.
-- The database-backed `trace-runtime console` exposes operator evidence without a write route. The public AWS app executes fresh read-only embedding, retrieval, and classification; its immutable proof remains a truth-labelled fallback.
+- The database-backed `trace-runtime console` exposes operator evidence without a write route. The public AWS app executes fresh read-only embedding, retrieval, and classification and returns no result when a dependency fails.
 - Legacy wiki memories can be imported idempotently, and SQL migrations are checksum-tracked.
 - Logs are structured and recursively redact secret-bearing fields; operational counters use Prometheus text format.
 
-The original GitLab Duo flow, standalone agents, and `trace-cli` remain in the repository as compatibility/reference assets. The durable cloud runtime in `trace_memory/` is GitHub-native.
+### Hackathon build versus pre-existing assets
+
+| Area | Status |
+|---|---|
+| `legacy/` | Pre-existing prototype retained for historical comparison; not used by the production runtime. |
+| `.gitlab/`, `flows/`, and top-level `agents/` | Pre-existing GitLab Duo/catalog definitions retained as compatibility and design references; not the deployed GitHub path. |
+| `trace-cli/` | Pre-existing local wiki-memory CLI retained for compatibility; not the cloud execution engine. |
+| `trace_memory/`, `migrations/`, `infra/`, `.github/workflows/`, `.github/agents/trace-auditor.agent.md` | Built for this hackathon: canonical CockroachDB runtime, Bedrock reasoning, GitHub automation, AWS durability, CI, and the Managed MCP auditor. |
 
 ## Runtime flow
 
@@ -92,7 +99,7 @@ GitHub webhook
   → encrypted SQS FIFO queue
   → task worker
   → GitHub context + CockroachDB hybrid retrieval
-  → Bedrock Claude/Titan
+  → Bedrock reasoning/Titan
   → review comment or governed memory
   → audit/task/retrieval evidence
 ```

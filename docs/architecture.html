@@ -42,7 +42,7 @@
     <div class="node"><strong>2. CockroachDB</strong><span>An agent task and outbox event commit atomically. Idempotency survives retries and process crashes.</span></div>
     <div class="node"><strong>3. SQS FIFO</strong><span>Encrypted durable delivery with bounded attempts, deduplication, DLQ retention, and CloudWatch alarms.</span></div>
     <div class="node"><strong>4. Retrieval</strong><span>Vector candidates plus file scope, confidence, security relevance, feedback, and recorded selection provenance.</span></div>
-    <div class="node"><strong>5. Bedrock</strong><span>Titan creates 1024-dimensional embeddings. Anthropic Claude returns schema-constrained reasoning.</span></div>
+    <div class="node"><strong>5. Bedrock</strong><span>Titan creates 1024-dimensional embeddings. Nova Pro returns schema-constrained reasoning.</span></div>
     <div class="node"><strong>6. Governed result</strong><span>Trace posts an attributable review or stores an ACTIVE/SUPERSEDED memory without erasing history.</span></div>
   </section>
 
@@ -51,15 +51,15 @@
   <h2>CockroachDB integration judges can verify</h2>
   <section class="proof">
     <article><h3>Distributed Vector Indexing</h3><p>The canonical schema configures a tenant/repository-prefixed distributed vector index over <code>VECTOR(1024)</code> embeddings. The small proof corpus used a primary-key scan, so Trace does not claim optimizer index selection for that run.</p></article>
-    <article><h3>Managed MCP</h3><p>OAuth is restricted to Read Data. The live MCP surface retrieves the exact <code>TRACE-MEMORY-00401</code> and retrieval <code>8033c0ed-9596-4aeb-ba95-e31d5825ac34</code> records from CockroachDB.</p></article>
+    <article><h3>Managed MCP</h3><p>The read-only Trace Auditor joins <code>TRACE-MEMORY-00401</code> and retrieval <code>c12d9de4-0f8f-4c79-9b8b-1390b62c9590</code> to provenance, task, action, and consequence evidence.</p></article>
     <article><h3>Serializable lifecycle</h3><p>Memory supersession, task state, provenance, and outbox publication remain tenant-scoped and transactionally consistent under CockroachDB serialization retries.</p></article>
   </section>
 
   <h2>Public judge surface</h2>
   <section class="proof">
-    <article><h3>AWS judge proof console</h3><p>The deployed Lambda app exposes the immutable verified-live-run identifiers and source links even when billing-dependent inference is paused. It defines no write route and sends no-store and browser-hardening headers.</p></article>
+    <article><h3>AWS judge console</h3><p>The deployed Lambda executes a fresh read-only Bedrock → CockroachDB → Bedrock path. It defines no write route and sends no-store and browser-hardening headers.</p></article>
     <article><h3>Immutable live proof</h3><p>PR #4 → <code>TRACE-MEMORY-00401</code> → PR #5 → Guardkeeper rejection is cross-linked by source, task, retrieval, and comment identifiers.</p></article>
-    <article><h3>Honest failure state</h3><p>If a cloud dependency is unavailable, the demo labels captured real evidence as REPLAY. Fixtures are never presented as live results.</p></article>
+    <article><h3>Honest failure state</h3><p>If a cloud dependency is unavailable, the demo returns NOT_RUN and fabricates no result. Fixtures are never presented as live results.</p></article>
   </section>
 </main>
 </body>

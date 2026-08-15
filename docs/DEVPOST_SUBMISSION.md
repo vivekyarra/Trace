@@ -18,13 +18,13 @@ ADRs work only when somebody writes and maintains them. Trace turns the work a t
 Trace follows a change from issue to production and gets more useful after every merge.
 
 1. **Before code — Specforge.** It retrieves relevant incidents and decisions, predicts likely failures, asks hard questions, and turns the answers into promises the eventual pull request must keep.
-2. **During review — Guardkeeper.** It embeds the diff, retrieves governed memory from CockroachDB, asks Anthropic Claude on Amazon Bedrock to identify semantic conflicts, verifies promises, and always runs deterministic security checks.
+2. **During review — Guardkeeper.** It embeds the diff, retrieves governed memory from CockroachDB, asks a schema-constrained Amazon Bedrock model to identify semantic conflicts, verifies promises, and always runs deterministic security checks.
 3. **After merge — Tracekeeper.** It extracts decisions from both discussion and code, stores provenance and Titan embeddings, tracks relationships and carbon implications, and captures recurring review rules.
 4. **When a decision changes — Reply Handler.** It supersedes the old memory without erasing it, transfers dependency links, and records the new reasoning.
 5. **Across the team — Tracecast and Onboarding.** It produces decision health, security inventory, sustainability totals, knowledge graphs, and prioritized briefings.
 6. **At any time — Trace Ask.** It answers natural-language questions with specific decisions, dates, sources, and dependency paths.
 
-The public demo executes the core loop on demand: select or paste a PR diff, create a fresh Titan embedding, retrieve tenant-scoped memories from CockroachDB, classify the conflict with Claude, and return a memory consequence receipt. The verified 2026-08-11 snapshot remains available only as an explicitly labelled replay fallback.
+The public demo executes the core loop on demand: select or paste a PR diff, create a fresh Titan embedding, retrieve tenant-scoped memories from CockroachDB, classify the conflict with Bedrock, and return a memory consequence receipt. It contains no replay result.
 
 ## The proof in one change
 
@@ -52,7 +52,7 @@ Three design choices make that possible:
 - **CockroachDB Distributed Vector Indexing** is configured with organization and repository prefix columns. We do not claim optimizer index selection for the tiny proof corpus; its recorded `EXPLAIN` chose a scan.
 - **CockroachDB Cloud Managed MCP** was authorized with Read Data only and independently retrieved the exact live memory and retrieval rows.
 - **Amazon Titan Text Embeddings V2 on Bedrock** creates stored memory vectors and fresh query vectors.
-- **Anthropic Claude on Amazon Bedrock** is the preferred schema-constrained semantic classifier. The public demo uses a truth-labelled Amazon Nova fallback when the AWS account cannot complete Anthropic Marketplace entitlement, and its receipt records the model that actually ran.
+- **Amazon Bedrock** runs schema-constrained reasoning with Nova Pro as the reliable primary and Mistral Large as the strong secondary. The receipt records the model that actually ran.
 - **AWS Lambda** hosts the public read-only `Run Trace` app. Its primary route traverses Bedrock → CockroachDB → Bedrock; it exposes no write route.
 - **Amazon SQS FIFO, KMS, and CloudWatch** make the production webhook path durable, encrypted, bounded, and observable.
 - **Python, Pydantic, SQLAlchemy, and pg8000** enforce typed boundaries from model output to transactional state and the lightweight Lambda read path.
@@ -65,13 +65,13 @@ A webhook may be delivered twice. A CockroachDB transaction may restart. A worke
 
 Hybrid retrieval was equally important. Pure similarity can bury a high-impact security decision beneath nearby text. Trace separates candidate retrieval from constrained model selection and records both the rank components and final reasoning.
 
-The demo itself exposed another useful standard: a static proof page is evidence, not a functional app. We kept that evidence as replay fallback and made the primary judge action execute a fresh, read-only memory loop with timings and model/database provenance.
+The demo itself exposed another useful standard: a static proof page is evidence, not a functional app. The judge action therefore executes a fresh, read-only memory loop with timings and model/database provenance and fabricates nothing on failure.
 
 ## Accomplishments that we're proud of
 
 - A governed memory lifecycle that supersedes decisions without destroying history.
 - A real GitHub → CockroachDB/SQS → Bedrock → GitHub production path.
-- A public judge action that performs fresh Titan embedding, CockroachDB retrieval, Bedrock classification, and consequence reporting, with Claude preferred and a truth-labelled Nova fallback.
+- A public judge action that performs fresh Titan embedding, CockroachDB retrieval, Bedrock classification, and consequence reporting with no replay path.
 - Fail-closed webhook and model boundaries plus an always-on deterministic security sentinel.
 - Retrieval evidence that makes memory influence causally inspectable.
 - Read-only Managed MCP verification against the same canonical CockroachDB source.
@@ -80,9 +80,16 @@ The demo itself exposed another useful standard: a static proof page is evidence
 
 ## What we learned
 
-Institutional memory needs opinions; infrastructure needs boring guarantees. Claude is strongest when semantic judgment is surrounded by deterministic admission, security, lifecycle, and audit rules. CockroachDB makes the central idea practical because semantic recall and operational truth live in the same transactional system.
+Institutional memory needs opinions; infrastructure needs boring guarantees. Model reasoning is useful when surrounded by deterministic admission, security, lifecycle, and audit rules. CockroachDB makes the central idea practical because semantic recall and operational truth live in the same transactional system.
 
 Most importantly, memory becomes valuable when it can change an action. Retrieval alone is not the product. The consequence is.
+
+## What was pre-existing versus built for this hackathon
+
+- `legacy/` is the pre-existing prototype and is retained only for historical comparison.
+- `.gitlab/`, `flows/`, and the top-level `agents/` catalog are pre-existing GitLab Duo/reference assets; they are not the deployed GitHub runtime.
+- `trace-cli/` is the pre-existing local wiki-memory CLI and is not the cloud execution engine.
+- `trace_memory/`, `migrations/`, `infra/`, the GitHub workflow, the public Lambda console, the PR #4/#5 production proof, and `.github/agents/trace-auditor.agent.md` were built for this hackathon.
 
 ## What's next
 
@@ -90,7 +97,7 @@ Next we will add GitHub App installation-token minting, multi-region workers, op
 
 ## Built with
 
-CockroachDB Cloud, CockroachDB Distributed Vector Indexing, CockroachDB Cloud Managed MCP, Amazon Bedrock, Anthropic Claude, Amazon Titan Text Embeddings V2, AWS Lambda, Amazon SQS, AWS KMS, Amazon CloudWatch, GitHub, Python, Pydantic, SQLAlchemy, and pg8000.
+CockroachDB Cloud, CockroachDB Distributed Vector Indexing, CockroachDB Cloud Managed MCP, Amazon Bedrock, Amazon Nova Pro, Mistral Large, Amazon Titan Text Embeddings V2, AWS Lambda, Amazon SQS, AWS KMS, Amazon CloudWatch, GitHub, Python, Pydantic, SQLAlchemy, and pg8000.
 
 ## Closing
 

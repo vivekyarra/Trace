@@ -1,6 +1,6 @@
 # Phase 1 audit — legacy Trace baseline
 
-Run: 2026-08-11 (Asia/Kolkata)
+Reviewed: 2026-08-15 (Asia/Kolkata)
 Branch: `feature/phase-1-audit`
 
 ## What exists

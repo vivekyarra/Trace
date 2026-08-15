@@ -15,7 +15,7 @@ Trace turns institutional memory into a temporal control system. A past decision
 | Chat history | Remembers conversation, not engineering authority | Stores governed decisions with scope, confidence, security relevance, and lifecycle |
 | ADR or wiki search | Requires a human to know that the right document exists | Automatically retrieves governing memory from the actual issue/PR context |
 | Vector-only RAG | Similarity can elevate stale or irrelevant text | Combines vector distance with file scope, confidence, security importance, feedback, and ACTIVE state |
-| Static lint rule | Catches syntax the rule author anticipated | Uses Claude to recognize semantic equivalents while deterministic checks remain in control |
+| Static lint rule | Catches syntax the rule author anticipated | Uses Bedrock reasoning to recognize semantic equivalents while deterministic checks remain in control |
 | PR summarizer | Describes the current change | Compares the change with historical promises and rejected alternatives, then acts in review |
 | Mutable knowledge base | New text silently replaces old truth | Supersedes decisions with provenance, dependencies, and an audit-preserving lifecycle |
 
@@ -25,7 +25,7 @@ Trace is agentic because memory changes behavior:
 
 1. **Observe:** receive a signed GitHub issue or pull-request event.
 2. **Remember:** retrieve tenant-scoped CockroachDB memories and their provenance.
-3. **Judge:** use Anthropic Claude on Bedrock to detect semantic conflicts and promise gaps.
+3. **Judge:** use a schema-constrained Bedrock model to detect semantic conflicts and promise gaps.
 4. **Act:** post an attributable Guardkeeper review or create a governed memory.
 5. **Learn:** record retrieval, reasoning, feedback, dependencies, and the resulting lifecycle transition.
 

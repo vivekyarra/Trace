@@ -1,6 +1,6 @@
 # Phase 0 cloud preflight
 
-Run: 2026-08-11 (Asia/Kolkata)
+Revalidated: 2026-08-15 (Asia/Kolkata)
 Scope: live CockroachDB Cloud and AWS sessions authenticated in Chrome, plus the active workspace and the `vivekyarra/Trace` GitHub repository. GitLab is explicitly out of scope for this GitHub-only product.
 
 This is evidence, not an architecture claim. A capability marked **NOT VERIFIED** must be retested before it is used as a production assumption.
@@ -52,7 +52,7 @@ The required next verification is to authenticate with **read-only** consent, th
 |---|---|---|
 | Selected region | **VERIFIED** | AWS Console region is Asia Pacific (Mumbai), `ap-south-1`, matching the CockroachDB cluster provider region. |
 | Titan embeddings | **VERIFIED** | CloudShell invoked `amazon.titan-embed-text-v2:0` with `dimensions: 1024` and `normalize: true`. The response contained `embedding_length: 1024` and `inputTextTokenCount: 6`. |
-| Reasoning model | **VERIFIED** | CloudShell invoked `global.anthropic.claude-sonnet-4-5-20250929-v1:0` through Bedrock and returned `Trace preflight OK`. Direct on-demand model invocation was rejected because this model requires an inference profile; the global profile is the verified configuration value. |
+| Reasoning model | **VERIFIED** | The production proof invoked `apac.amazon.nova-pro-v1:0` through Bedrock and recorded it on the memory/action and retrieval rows. Marketplace-backed Opus requests returned `INVALID_PAYMENT_INSTRUMENT`, so they are not claimed in the final proof. |
 | Lambda runtime compatibility | **VERIFIED** | In `ap-south-1`, a real `trace-preflight-python312` Lambda using runtime `python3.12` was deployed with an isolated execution role and invoked successfully. It returned `StatusCode: 200` and `{"statusCode": 200, "body": "Trace Lambda preflight OK"}`. |
 
 ### Verified invocation commands
@@ -71,14 +71,11 @@ aws bedrock-runtime invoke-model \
 ```
 
 ```bash
-aws bedrock-runtime invoke-model \
+aws bedrock-runtime converse \
   --region ap-south-1 \
-  --cli-binary-format raw-in-base64-out \
-  --model-id global.anthropic.claude-sonnet-4-5-20250929-v1:0 \
-  --content-type application/json \
-  --accept application/json \
-  --body '{"anthropic_version":"bedrock-2023-05-31","max_tokens":32,"messages":[{"role":"user","content":"Reply only: Trace preflight OK"}]}' \
-  /tmp/trace-reasoning.json
+  --model-id apac.amazon.nova-pro-v1:0 \
+  --messages '[{"role":"user","content":[{"text":"Reply only: Trace preflight OK"}]}]' \
+  --inference-config '{"maxTokens":32,"temperature":0}'
 ```
 
 ## GitHub (replaces GitLab for this product)

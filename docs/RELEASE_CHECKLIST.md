@@ -44,4 +44,4 @@ Release candidate: `v0.2.0`
 
 ## Evidence record
 
-Record candidate SHA, CI URL, merged SHA, main CI URL, image digest, migration output, AWS stack ID, queue alarm test, CockroachDB query-plan evidence, and demo timestamp in `docs/evidence/release-v0.2.0.md`. Unchecked live-infrastructure gates must be reported as blockers, never silently treated as passed.
+Record the current proof identifiers, CI URL, migration result, AWS deployment state, CockroachDB evidence, and demo timestamp in `docs/evidence/core-live-proof.md`. Unchecked live-infrastructure gates must be reported as blockers, never silently treated as passed.

@@ -1,45 +1,46 @@
 # Trace live core proof
 
-Captured on 2026-08-11 against real GitHub, Amazon Bedrock, and CockroachDB Cloud services.
+Captured on **2026-08-15** against real GitHub, Amazon Bedrock, and CockroachDB Cloud services.
 
 ## Acceptance result
 
-The required path completed successfully:
+1. [PR #4](https://github.com/vivekyarra/Trace/pull/4) merged at `34dc3821c41ac85e64a881dfe8e6bafa03740df8`.
+2. Trace task `ee4e5da8-c764-4278-9ef5-1fc475185b2f` created `TRACE-MEMORY-00401` with PR-source provenance.
+3. Amazon Titan Text Embeddings V2 produced the stored 1024-dimensional vector.
+4. Open [PR #5](https://github.com/vivekyarra/Trace/pull/5) triggered tenant-scoped retrieval and Bedrock reranking.
+5. Retrieval `c12d9de4-0f8f-4c79-9b8b-1390b62c9590` selected the governing memory and blocked the review.
 
-1. [PR A #4](https://github.com/vivekyarra/Trace/pull/4) merged into the isolated demo base at commit `7bd53303e786afd41c8fbc9b22147257387a1a2d`.
-2. Trace created `TRACE-MEMORY-00401` (`679be7b7-1476-4c7e-aacb-318f0cab3e80`) with PR-source provenance.
-3. Amazon Titan Text Embeddings V2 produced and CockroachDB stored the 1024-dimensional vector.
-4. Open [PR B #5](https://github.com/vivekyarra/Trace/pull/5) triggered CockroachDB vector candidate retrieval backed by a configured distributed vector index, followed by the production `HybridRanker` and Bedrock reranking.
-5. Retrieval `8033c0ed-9596-4aeb-ba95-e31d5825ac34` selected the memory and Trace's Guardkeeper comment cited PR A.
+PR #5 remains open and unmerged.
 
-PR B remains open and was never merged. At the time of this isolated live run, `main` was not changed; the separately reviewed production-hardening commits were later promoted to `main` without merging PR B.
-
-## Immutable evidence chain
+## Live evidence chain
 
 | Stage | Identifier |
 |---|---|
-| PR A task | `4facb438-2917-488b-b500-fcfd45565905` |
-| PR A GitHub comment | `5302092662` ([https://github.com/vivekyarra/Trace/pull/4#issuecomment-5302092662](https://github.com/vivekyarra/Trace/pull/4#issuecomment-5302092662)) |
-| Memory | `TRACE-MEMORY-00401` / `679be7b7-1476-4c7e-aacb-318f0cab3e80` |
+| PR #4 task | `ee4e5da8-c764-4278-9ef5-1fc475185b2f` |
+| PR #4 comment | [`5302264557`](https://github.com/vivekyarra/Trace/pull/4#issuecomment-5302264557) |
+| Memory | `TRACE-MEMORY-00401` / `e9ba2d0e-5543-4e06-a8e0-e2b6640dc062` |
 | Source | `https://github.com/vivekyarra/Trace/pull/4` |
-| Embedding | `amazon.titan-embed-text-v2:0`, version `v2`, stored `true` |
-| PR B task | `1293facd-a701-490b-82df-0686d670638c` |
-| Retrieval | `8033c0ed-9596-4aeb-ba95-e31d5825ac34` |
-| Reasoning model | `apac.anthropic.claude-3-haiku-20240307-v1:0` |
-| Hybrid pre-rerank score | `0.28500000000000003` |
-| Bedrock selection | `1.00`, selected `true` |
-| PR B GitHub comment | `5302092366` ([https://github.com/vivekyarra/Trace/pull/5#issuecomment-5302092366](https://github.com/vivekyarra/Trace/pull/5#issuecomment-5302092366)) |
+| Created and embedded | `2026-08-15T12:37:06Z` |
+| Embedding | `amazon.titan-embed-text-v2:0`, version `v2`, 1024 dimensions |
+| PR #5 task | `4abf1168-1b18-4563-b44b-5cc58fc3d049` |
+| Retrieval | `c12d9de4-0f8f-4c79-9b8b-1390b62c9590` |
+| Retrieval time | `2026-08-15T12:37:08Z` |
+| Reasoning model | `apac.amazon.nova-pro-v1:0` |
+| Bedrock rerank score | `0.30`, selected `true` |
+| PR #5 comment | [`5302264619`](https://github.com/vivekyarra/Trace/pull/5#issuecomment-5302264619) |
 
-The successful live run occurred before commit `3f40f86`, and its textual `selection_reason` durably contains `Bedrock=1.00`. Commit `3f40f86` additionally persists that numeric value in `llm_rerank_score`; its regression test and branch CI are green. A post-fix live rerun was not substituted into this evidence because AWS subsequently returned `INVALID_PAYMENT_INSTRUMENT`. The original successful chain above remains independently inspectable in GitHub and CockroachDB.
+The two GitHub comments are the only Trace proof comments on their respective pull requests. Their task IDs and external effect IDs match the CockroachDB `agent_tasks` and `agent_actions` rows.
+
+## Consequence
+
+The PR #5 review contains one `MEMORY_CONFLICT` governed by `TRACE-MEMORY-00401`. Retrieval alone is not counted as consequence. `memory_changed_review` is true because the selected memory produced that conflict finding; without the memory, the finding is absent.
 
 ## Verification
 
-- Local: `python -m pytest -q` — 37 passed.
-- Local: `python -m ruff check trace_memory tests scripts` — passed.
-- GitHub Actions: [Verify Trace run 31519929892](https://github.com/vivekyarra/Trace/actions/runs/31519929892) — success on `3f40f86c811ef9fb3a92a1fe4d567243b3605d8c`.
-- **CockroachDB Managed MCP (second CockroachDB tool):** Codex completed OAuth with **Read Data** only and independently read the live `TRACE-MEMORY-00401` memory and retrieval `8033c0ed-9596-4aeb-ba95-e31d5825ac34`. This is a live database tool call, not a screenshot or fixture.
-- **Vector-index precision:** the live schema has a configured distributed vector index, but the three-row `EXPLAIN` in [`vector-explain.txt`](vector-explain.txt) selected a primary-key scan. This evidence therefore does not claim that the optimizer selected the vector index or accelerated retrieval at that corpus size.
-
-The screenshots and their proof mapping are in [`screenshots/README.md`](../../screenshots/README.md).
+- Local: `py -m pytest tests trace-cli/tests` — 91 passed before publication.
+- Changed-file lint and `git diff --check` — passed.
+- CockroachDB Managed MCP: the `Trace Auditor` workspace agent is restricted to read-only Managed MCP tools and verifies the joined memory, source, scope, retrieval, candidate, task, action, and consequence rows.
+- Managed MCP audit time: `2026-08-15T12:48:09Z`; verdict `VERIFIED`, published effect `5302264619`, `memory_changed_review=true`.
+- Distributed vector indexing is configured. The tiny proof corpus does not establish optimizer index selection or acceleration.
 
 The judge-facing AWS deployment is recorded in [`aws-demo-deployment.md`](aws-demo-deployment.md).
