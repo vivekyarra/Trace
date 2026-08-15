@@ -432,21 +432,3 @@ class RuntimeRepository:
                 updated_at = now() WHERE id = :id
         """), {"id": task_id, "status": status.value, "error": error,
                "scheduled_at": scheduled_at, "completed": completed}))
-
-
-class ImportRunRepository:
-    def __init__(self, database: CockroachDatabase, *, organization_id: UUID, repository_id: UUID) -> None:
-        self._database = database
-        self._organization_id = organization_id
-        self._repository_id = repository_id
-
-    def record(self, *, source_name: str, source_checksum: str, imported: int, skipped: int) -> None:
-        self._database.transaction(lambda connection: connection.execute(text("""
-            INSERT INTO import_runs (
-                id, organization_id, repository_id, source_name, source_checksum, imported_count, skipped_count
-            ) VALUES (
-                :id, :organization_id, :repository_id, :source_name, :source_checksum, :imported, :skipped
-            ) ON CONFLICT (repository_id, source_checksum) DO NOTHING
-        """), {"id": uuid4(), "organization_id": self._organization_id,
-               "repository_id": self._repository_id, "source_name": source_name,
-               "source_checksum": source_checksum, "imported": imported, "skipped": skipped}))

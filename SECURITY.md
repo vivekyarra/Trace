@@ -2,7 +2,7 @@
 
 ## Supported release
 
-The durable `trace_memory/` runtime on the latest tagged release receives security fixes. Files under `legacy/` are reference-only and must not be deployed.
+The `trace_memory/` runtime on the latest tagged release receives security fixes.
 
 Report vulnerabilities privately through the repository's GitHub Security Advisory flow. Do not open a public issue containing credentials, exploit details, tenant data, or webhook payloads.
 

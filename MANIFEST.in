@@ -2,8 +2,6 @@ include LICENSE README.md pyproject.toml
 recursive-include trace_memory *.py
 recursive-include migrations *.sql
 prune docs
-prune legacy
-prune trace-cli
 prune src
 prune tests
 global-exclude __pycache__ *.py[cod]

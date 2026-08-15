@@ -3,11 +3,8 @@ from trace_memory.runtime.automation import _promises
 
 
 def test_all_production_processes_are_exposed() -> None:
-    for command in ("migrate", "import", "webhook", "console", "outbox-worker", "task-worker"):
-        arguments = [command]
-        if command == "import":
-            arguments.append("memory.txt")
-        assert parser().parse_args(arguments).command == command
+    for command in ("migrate", "webhook", "console", "outbox-worker", "task-worker"):
+        assert parser().parse_args([command]).command == command
 
 
 def test_promise_extraction_is_bounded_and_specific() -> None:

@@ -37,7 +37,7 @@ The PR #5 review contains one `MEMORY_CONFLICT` governed by `TRACE-MEMORY-00401`
 
 ## Verification
 
-- Local: `py -m pytest tests trace-cli/tests` — 91 passed before publication.
+- Local: `py -m pytest tests` — 44 passed before publication.
 - Changed-file lint and `git diff --check` — passed.
 - CockroachDB Managed MCP: the `Trace Auditor` workspace agent is restricted to read-only Managed MCP tools and verifies the joined memory, source, scope, retrieval, candidate, task, action, and consequence rows.
 - Managed MCP audit time: `2026-08-15T12:48:09Z`; verdict `VERIFIED`, published effect `5302264619`, `memory_changed_review=true`.

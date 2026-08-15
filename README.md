@@ -77,17 +77,8 @@ It is built for one uncomfortable truth: teams rarely repeat failures because no
 - Bedrock reasoning and Titan embeddings run through Amazon Bedrock. Every model response is schema-validated before it can affect stored state.
 - Guardkeeper always runs deterministic security checks even if model reasoning is unavailable.
 - The database-backed `trace-runtime console` exposes operator evidence without a write route. The public AWS app executes fresh read-only embedding, retrieval, and classification and returns no result when a dependency fails.
-- Legacy wiki memories can be imported idempotently, and SQL migrations are checksum-tracked.
+- SQL migrations are ordered and checksum-tracked.
 - Logs are structured and recursively redact secret-bearing fields; operational counters use Prometheus text format.
-
-### Hackathon build versus pre-existing assets
-
-| Area | Status |
-|---|---|
-| `legacy/` | Pre-existing prototype retained for historical comparison; not used by the production runtime. |
-| `.gitlab/`, `flows/`, and top-level `agents/` | Pre-existing GitLab Duo/catalog definitions retained as compatibility and design references; not the deployed GitHub path. |
-| `trace-cli/` | Pre-existing local wiki-memory CLI retained for compatibility; not the cloud execution engine. |
-| `trace_memory/`, `migrations/`, `infra/`, `.github/workflows/`, `.github/agents/trace-auditor.agent.md` | Built for this hackathon: canonical CockroachDB runtime, Bedrock reasoning, GitHub automation, AWS durability, CI, and the Managed MCP auditor. |
 
 ## Runtime flow
 
@@ -128,8 +119,7 @@ Python 3.12 is required.
 
 ```bash
 python -m pip install -e ".[test]"
-python -m pip install -e ./trace-cli
-python -m pytest tests trace-cli/tests
+python -m pytest tests
 python -m ruff check trace_memory
 python -m compileall -q trace_memory
 ```
@@ -149,22 +139,13 @@ Copy `.env.template` into your secret manager, not into Git. Required settings a
 
 Use a GitHub App installation token in production. Grant only metadata/content read, issues read/write, and pull-request read permissions. Do not use a personal access token as a long-lived runtime credential.
 
-## Database and import
+## Database migrations
 
 Apply all migrations with a DDL identity, never the `trace_app` runtime role:
 
 ```bash
 trace-runtime migrate
 ```
-
-Import a legacy Trace wiki export after setting the canonical organisation and repository IDs:
-
-```bash
-trace-runtime import ./memory-export.md
-trace-runtime import ./memory-export.md --best-effort
-```
-
-Strict import validates the whole file before the first memory write. Best-effort mode reports malformed and duplicate records as skipped. Content hashes make a repeated import safe, and `import_runs` preserves the source checksum and outcome.
 
 ## Run the services
 

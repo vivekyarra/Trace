@@ -11,9 +11,9 @@ from pathlib import Path
 from uuid import UUID
 
 from trace_memory.console import DatabaseConsoleSource, serve_console
-from trace_memory.migration import LegacyMemoryImporter, MigrationRunner
+from trace_memory.migration import MigrationRunner
 from trace_memory.observability import Metrics
-from trace_memory.persistence import CockroachDatabase, ImportRunRepository, MemoryRepository, RuntimeRepository
+from trace_memory.persistence import CockroachDatabase, MemoryRepository, RuntimeRepository
 from trace_memory.runtime import OutboxWorker, SqsPublisher, SqsTaskWorker
 from trace_memory.runtime.automation import GitHubAutomation
 from trace_memory.runtime.github import GitHubClient, GitHubWebhookRuntime
@@ -25,9 +25,6 @@ def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(prog="trace-runtime", description="Trace institutional-memory runtime")
     commands = root.add_subparsers(dest="command", required=True)
     commands.add_parser("migrate", help="apply tracked CockroachDB migrations")
-    importer = commands.add_parser("import", help="import legacy Trace wiki memories")
-    importer.add_argument("path", type=Path)
-    importer.add_argument("--best-effort", action="store_true")
     for name in ("webhook", "console"):
         command = commands.add_parser(name)
         command.add_argument("--host", default="127.0.0.1")
@@ -51,15 +48,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "migrate":
         applied = MigrationRunner(database, _migrations_directory()).apply()
         print("applied: " + (", ".join(applied) if applied else "none"))
-        return 0
-    if args.command == "import":
-        from trace_memory.ai import BedrockEmbedder
-        content = args.path.read_text(encoding="utf-8")
-        recorder = ImportRunRepository(database, organization_id=organization_id, repository_id=repository_id)
-        report = LegacyMemoryImporter(MemoryRepository(database), organization_id, repository_id,
-                                      recorder, BedrockEmbedder()).import_text(
-            content, strict=not args.best_effort, source_name=args.path.name)
-        print(f"imported={report.imported} skipped={report.skipped}")
         return 0
     if args.command == "console":
         serve_console(DatabaseConsoleSource(database), host=args.host, port=args.port)

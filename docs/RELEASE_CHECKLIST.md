@@ -6,7 +6,7 @@ Release candidate: `v0.2.0`
 
 - [ ] Work is committed to a feature/release branch, never directly to `main`.
 - [ ] `git diff --check` is clean.
-- [ ] Runtime and compatibility tests pass.
+- [ ] Runtime tests pass.
 - [ ] Ruff and compileall pass.
 - [ ] Dependency audit reports no known vulnerability.
 - [ ] Feature-branch GitHub Actions succeeds for the exact candidate SHA.
@@ -19,7 +19,6 @@ Release candidate: `v0.2.0`
 - [ ] A database already at 001 applies only 002.
 - [ ] Migration checksum drift is rejected.
 - [ ] Runtime uses `trace_app`; migration identity is separate.
-- [ ] Strict and best-effort legacy imports are exercised with synthetic data.
 - [ ] Tenant-prefixed vector query plan uses `memories_embedding_vector_idx`.
 
 ## Runtime

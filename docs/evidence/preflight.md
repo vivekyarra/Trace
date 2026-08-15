@@ -1,7 +1,7 @@
 # Phase 0 cloud preflight
 
 Revalidated: 2026-08-15 (Asia/Kolkata)
-Scope: live CockroachDB Cloud and AWS sessions authenticated in Chrome, plus the active workspace and the `vivekyarra/Trace` GitHub repository. GitLab is explicitly out of scope for this GitHub-only product.
+Scope: live CockroachDB Cloud and AWS sessions authenticated in Chrome, plus the active workspace and the `vivekyarra/Trace` GitHub repository.
 
 This is evidence, not an architecture claim. A capability marked **NOT VERIFIED** must be retested before it is used as a production assumption.
 
@@ -78,7 +78,7 @@ aws bedrock-runtime converse \
   --inference-config '{"maxTokens":32,"temperature":0}'
 ```
 
-## GitHub (replaces GitLab for this product)
+## GitHub
 
 | Check | Result | Observed evidence |
 |---|---|---|

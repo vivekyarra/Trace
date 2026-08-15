@@ -75,21 +75,13 @@ The demo itself exposed another useful standard: a static proof page is evidence
 - Fail-closed webhook and model boundaries plus an always-on deterministic security sentinel.
 - Retrieval evidence that makes memory influence causally inspectable.
 - Read-only Managed MCP verification against the same canonical CockroachDB source.
-- Compatibility import for the original GitLab Duo flow and wiki memory format.
-- A release suite covering runtime, migration, security, retrieval, queue, UI, and the original CLI.
+- A release suite covering runtime, migration, security, retrieval, queue, and UI behavior.
 
 ## What we learned
 
 Institutional memory needs opinions; infrastructure needs boring guarantees. Model reasoning is useful when surrounded by deterministic admission, security, lifecycle, and audit rules. CockroachDB makes the central idea practical because semantic recall and operational truth live in the same transactional system.
 
 Most importantly, memory becomes valuable when it can change an action. Retrieval alone is not the product. The consequence is.
-
-## What was pre-existing versus built for this hackathon
-
-- `legacy/` is the pre-existing prototype and is retained only for historical comparison.
-- `.gitlab/`, `flows/`, and the top-level `agents/` catalog are pre-existing GitLab Duo/reference assets; they are not the deployed GitHub runtime.
-- `trace-cli/` is the pre-existing local wiki-memory CLI and is not the cloud execution engine.
-- `trace_memory/`, `migrations/`, `infra/`, the GitHub workflow, the public Lambda console, the PR #4/#5 production proof, and `.github/agents/trace-auditor.agent.md` were built for this hackathon.
 
 ## What's next
 

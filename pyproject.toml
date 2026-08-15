@@ -20,7 +20,7 @@ trace-runtime = "trace_memory.cli:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["trace_memory", "trace_memory.*"]
-exclude = ["legacy*", "trace-cli*", "tests*"]
+exclude = ["tests*"]
 
 [tool.setuptools.data-files]
 "share/trace/migrations" = ["migrations/*.sql"]
