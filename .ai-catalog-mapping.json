@@ -1,9 +1,9 @@
 {
   "schema_version": "1.0",
   "agents": {
-    "agents/lore-ask.yml": {
+    "agents/trace-ask.yml": {
       "catalog_id": "gid://gitlab/Ai::Catalog::Item/1006465",
-      "name": "LORE Ask",
+      "name": "Trace Ask",
       "created_at": "2026-03-23T11:07:44.099Z",
       "item_consumers": {
         "group": {
@@ -20,9 +20,9 @@
         "definition_hash": "4f7ae0520ee53e9c"
       }
     },
-    "agents/lore-migrate.yml": {
+    "agents/trace-migrate.yml": {
       "catalog_id": "gid://gitlab/Ai::Catalog::Item/1007030",
-      "name": "LORE Migrate",
+      "name": "Trace Migrate",
       "created_at": "2026-03-25T05:55:34.716Z",
       "item_consumers": {
         "group": {
@@ -43,7 +43,7 @@
   "flows": {
     "flows/flow.yml": {
       "catalog_id": "gid://gitlab/Ai::Catalog::Item/1005843",
-      "name": "LORE — Living Organisational Record Engine",
+      "name": "Trace",
       "created_at": "2026-03-21T07:10:22.710Z",
       "item_consumers": {
         "group": {

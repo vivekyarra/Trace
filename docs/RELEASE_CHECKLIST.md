@@ -18,7 +18,7 @@ Release candidate: `v0.2.0`
 - [ ] A fresh CockroachDB database applies migrations 001 and 002.
 - [ ] A database already at 001 applies only 002.
 - [ ] Migration checksum drift is rejected.
-- [ ] Runtime uses `lore_app`; migration identity is separate.
+- [ ] Runtime uses `trace_app`; migration identity is separate.
 - [ ] Strict and best-effort legacy imports are exercised with synthetic data.
 - [ ] Tenant-prefixed vector query plan uses `memories_embedding_vector_idx`.
 

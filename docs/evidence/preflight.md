@@ -1,7 +1,7 @@
 # Phase 0 cloud preflight
 
 Run: 2026-08-11 (Asia/Kolkata)
-Scope: live CockroachDB Cloud and AWS sessions authenticated in Chrome, plus the `D:\Lore-cockroachDB` workspace and the `vivekyarra/Trace` GitHub repository. GitLab is explicitly out of scope for this GitHub-only product.
+Scope: live CockroachDB Cloud and AWS sessions authenticated in Chrome, plus the active workspace and the `vivekyarra/Trace` GitHub repository. GitLab is explicitly out of scope for this GitHub-only product.
 
 This is evidence, not an architecture claim. A capability marked **NOT VERIFIED** must be retested before it is used as a production assumption.
 
@@ -12,24 +12,24 @@ This is evidence, not an architecture claim. A capability marked **NOT VERIFIED*
 | Competition cluster | **VERIFIED** | `lucid-owlet` is Available on the Basic plan, hosted on AWS in Mumbai (`ap-south-1`). No second cluster was created. |
 | Version | **VERIFIED** | `SELECT version()` returned `CockroachDB CCL v26.2.5`. |
 | SQL access | **VERIFIED** | The Cloud SQL Shell connected as the authenticated console user to `defaultdb` and executed SQL successfully. |
-| `VECTOR` support | **VERIFIED** | `CREATE TABLE lore_preflight_vectors (... embedding VECTOR(3) NOT NULL)` succeeded. |
-| Vector index | **VERIFIED** | `CREATE VECTOR INDEX lore_preflight_vectors_embedding_idx ON lore_preflight_vectors (embedding)` succeeded. |
-| Prefix vector-index syntax | **VERIFIED** | `CREATE VECTOR INDEX lore_preflight_vectors_prefix_idx ON lore_preflight_vectors (organization_id, repository_id, embedding)` succeeded. This is the tested tenant/repository-prefix form for this cluster version. |
+| `VECTOR` support | **VERIFIED** | `CREATE TABLE trace_preflight_vectors (... embedding VECTOR(3) NOT NULL)` succeeded. |
+| Vector index | **VERIFIED** | `CREATE VECTOR INDEX trace_preflight_vectors_embedding_idx ON trace_preflight_vectors (embedding)` succeeded. |
+| Prefix vector-index syntax | **VERIFIED** | `CREATE VECTOR INDEX trace_preflight_vectors_prefix_idx ON trace_preflight_vectors (organization_id, repository_id, embedding)` succeeded. This is the tested tenant/repository-prefix form for this cluster version. |
 | Representative vector query | **VERIFIED** | A cosine-distance query over three vectors returned IDs `1`, `2`, `3` with distances `0`, `0.006116251198662548`, `1` respectively. |
 | `EXPLAIN` | **VERIFIED, negative result** | The tested three-row query plans a primary-key full scan, not either vector index. See `docs/evidence/vector-explain.txt`. Do **not** claim accelerated vector retrieval until a realistic corpus and plan demonstrate index selection. |
 | Managed MCP configuration | **VERIFIED** | Cloud Console generated Codex configuration for `https://cockroachlabs.cloud/mcp` with header `mcp-cluster-id: 9727d881-7fa9-4e9c-9e57-437e1afad9b7`; the same configuration is installed in the local Codex client. |
 | Managed MCP transport and OAuth discovery | **VERIFIED** | A live unauthenticated `initialize` request reached the endpoint and returned `401` with `WWW-Authenticate: Bearer`, resource metadata at `/.well-known/oauth-protected-resource/mcp`, and supported scopes `mcp:read`, `mcp:write`. This proves the managed endpoint and its authorization server are live. |
 | Managed MCP read-only tool call | **VERIFIED** | Codex completed the CockroachDB Cloud OAuth flow with **Read Data** only; Write Data remained unchecked. A live `cockroachdb-cloud/list_databases` MCP call then returned `defaultdb`. |
-| Read-only database access | **VERIFIED** | An independently connected temporary SQL login inherited only `lore_preflight_readonly`: `SELECT count(*)` returned `3`; an `INSERT` failed with `does not have INSERT privilege`. The temporary user and password were removed immediately after the probe. |
+| Read-only database access | **VERIFIED** | An independently connected temporary SQL login inherited only `trace_preflight_readonly`: `SELECT count(*)` returned `3`; an `INSERT` failed with `does not have INSERT privilege`. The temporary user and password were removed immediately after the probe. |
 
 ### Test objects
 
 The following isolated test objects remain in `defaultdb.public` so that subsequent preflight and implementation work can inspect the same results:
 
 ```sql
-lore_preflight_vectors
-lore_preflight_vectors_embedding_idx
-lore_preflight_vectors_prefix_idx
+trace_preflight_vectors
+trace_preflight_vectors_embedding_idx
+trace_preflight_vectors_prefix_idx
 ```
 
 They contain only three synthetic vectors and no application or personal data. They may be dropped after durable migration tests replace them.
@@ -52,8 +52,8 @@ The required next verification is to authenticate with **read-only** consent, th
 |---|---|---|
 | Selected region | **VERIFIED** | AWS Console region is Asia Pacific (Mumbai), `ap-south-1`, matching the CockroachDB cluster provider region. |
 | Titan embeddings | **VERIFIED** | CloudShell invoked `amazon.titan-embed-text-v2:0` with `dimensions: 1024` and `normalize: true`. The response contained `embedding_length: 1024` and `inputTextTokenCount: 6`. |
-| Reasoning model | **VERIFIED** | CloudShell invoked `global.anthropic.claude-sonnet-4-5-20250929-v1:0` through Bedrock and returned `LORE preflight OK`. Direct on-demand model invocation was rejected because this model requires an inference profile; the global profile is the verified configuration value. |
-| Lambda runtime compatibility | **VERIFIED** | In `ap-south-1`, a real `lore-preflight-python312` Lambda using runtime `python3.12` was deployed with an isolated execution role and invoked successfully. It returned `StatusCode: 200` and `{"statusCode": 200, "body": "LORE Lambda preflight OK"}`. |
+| Reasoning model | **VERIFIED** | CloudShell invoked `global.anthropic.claude-sonnet-4-5-20250929-v1:0` through Bedrock and returned `Trace preflight OK`. Direct on-demand model invocation was rejected because this model requires an inference profile; the global profile is the verified configuration value. |
+| Lambda runtime compatibility | **VERIFIED** | In `ap-south-1`, a real `trace-preflight-python312` Lambda using runtime `python3.12` was deployed with an isolated execution role and invoked successfully. It returned `StatusCode: 200` and `{"statusCode": 200, "body": "Trace Lambda preflight OK"}`. |
 
 ### Verified invocation commands
 
@@ -66,8 +66,8 @@ aws bedrock-runtime invoke-model \
   --model-id amazon.titan-embed-text-v2:0 \
   --content-type application/json \
   --accept application/json \
-  --body '{"inputText":"LORE preflight embedding","dimensions":1024,"normalize":true}' \
-  /tmp/lore-titan.json
+  --body '{"inputText":"Trace preflight embedding","dimensions":1024,"normalize":true}' \
+  /tmp/trace-titan.json
 ```
 
 ```bash
@@ -77,8 +77,8 @@ aws bedrock-runtime invoke-model \
   --model-id global.anthropic.claude-sonnet-4-5-20250929-v1:0 \
   --content-type application/json \
   --accept application/json \
-  --body '{"anthropic_version":"bedrock-2023-05-31","max_tokens":32,"messages":[{"role":"user","content":"Reply only: LORE preflight OK"}]}' \
-  /tmp/lore-reasoning.json
+  --body '{"anthropic_version":"bedrock-2023-05-31","max_tokens":32,"messages":[{"role":"user","content":"Reply only: Trace preflight OK"}]}' \
+  /tmp/trace-reasoning.json
 ```
 
 ## GitHub (replaces GitLab for this product)

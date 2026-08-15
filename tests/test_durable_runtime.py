@@ -1,6 +1,6 @@
 import pytest
 
-from lore.runtime import EventAdmission, retry_delay_seconds
+from trace_memory.runtime import EventAdmission, retry_delay_seconds
 
 
 def test_delivery_idempotency_is_stable_and_repository_scoped() -> None:

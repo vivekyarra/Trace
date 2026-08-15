@@ -1,6 +1,6 @@
-# LORE — Living Organisational Record Engine
+# Trace
 
-LORE is institutional memory for software teams. It observes GitHub issues and pull requests, retrieves the decisions that govern the affected code, uses Anthropic Claude on Amazon Bedrock to reason about conflicts and promises, and stores the resulting memory and provenance in CockroachDB.
+Trace is institutional memory for software teams. It observes GitHub issues and pull requests, retrieves the decisions that govern the affected code, uses Anthropic Claude on Amazon Bedrock to reason about conflicts and promises, and stores the resulting memory and provenance in CockroachDB.
 
 It is built for one uncomfortable truth: teams rarely repeat failures because nobody cared. They repeat them because the reason behind yesterday's decision disappeared into a review thread.
 
@@ -15,7 +15,7 @@ It is built for one uncomfortable truth: teams rarely repeat failures because no
 - Legacy wiki memories can be imported idempotently, and SQL migrations are checksum-tracked.
 - Logs are structured and recursively redact secret-bearing fields; operational counters use Prometheus text format.
 
-The original GitLab Duo flow, standalone agents, and `lore-cli` remain in the repository as compatibility/reference assets. The durable cloud runtime in `lore/` is GitHub-native.
+The original GitLab Duo flow, standalone agents, and `trace-cli` remain in the repository as compatibility/reference assets. The durable cloud runtime in `trace_memory/` is GitHub-native.
 
 ## Runtime flow
 
@@ -38,14 +38,14 @@ If any process crashes, the database remains the recovery source. A delivery can
 
 | Path | Purpose |
 |---|---|
-| `lore/domain` | Strict canonical models and lifecycle invariants |
-| `lore/persistence` | CockroachDB transactions and repositories |
-| `lore/retrieval` | Explainable hybrid ranking |
-| `lore/ai` | Bedrock embedding and structured reasoning adapters |
-| `lore/agents` | Guardkeeper and governed supersession |
-| `lore/runtime` | GitHub admission, automation, outbox, and SQS workers |
-| `lore/server.py` | Webhook, health, and metrics HTTP ingress |
-| `lore/console.py` | Read-only judge console |
+| `trace_memory/domain` | Strict canonical models and lifecycle invariants |
+| `trace_memory/persistence` | CockroachDB transactions and repositories |
+| `trace_memory/retrieval` | Explainable hybrid ranking |
+| `trace_memory/ai` | Bedrock embedding and structured reasoning adapters |
+| `trace_memory/agents` | Guardkeeper and governed supersession |
+| `trace_memory/runtime` | GitHub admission, automation, outbox, and SQS workers |
+| `trace_memory/server.py` | Webhook, health, and metrics HTTP ingress |
+| `trace_memory/console.py` | Read-only judge console |
 | `migrations` | Ordered, checksum-tracked CockroachDB DDL |
 | `infra/aws.yaml` | SQS FIFO/DLQ, least-privilege IAM, and CloudWatch alarms |
 | `docs` | Architecture, operations, security, demo, Devpost, and release evidence |
@@ -56,10 +56,10 @@ Python 3.12 is required.
 
 ```bash
 python -m pip install -e ".[test]"
-python -m pip install -e ./lore-cli
-python -m pytest tests lore-cli/tests
-python -m ruff check lore
-python -m compileall -q lore
+python -m pip install -e ./trace-cli
+python -m pytest tests trace-cli/tests
+python -m ruff check trace_memory
+python -m compileall -q trace_memory
 ```
 
 The GitHub Actions workflow repeats those gates, validates both migrations, and audits installed Python dependencies.
@@ -68,27 +68,27 @@ The GitHub Actions workflow repeats those gates, validates both migrations, and 
 
 Copy `.env.template` into your secret manager, not into Git. Required settings are:
 
-- `DATABASE_URL`: the `lore_app` CockroachDB connection, using `sslmode=verify-full` remotely.
-- `LORE_ORGANIZATION_ID` and `LORE_REPOSITORY_ID`: canonical tenant IDs.
+- `DATABASE_URL`: the `trace_app` CockroachDB connection, using `sslmode=verify-full` remotely.
+- `TRACE_ORGANIZATION_ID` and `TRACE_REPOSITORY_ID`: canonical tenant IDs.
 - `GITHUB_REPOSITORY`, `GITHUB_TOKEN`, and a 32+ character `GITHUB_WEBHOOK_SECRET`.
-- `LORE_SQS_QUEUE_URL` and `LORE_SQS_DLQ_URL`.
+- `TRACE_SQS_QUEUE_URL` and `TRACE_SQS_DLQ_URL`.
 - `AWS_REGION` and optional Bedrock model overrides.
 
 Use a GitHub App installation token in production. Grant only metadata/content read, issues read/write, and pull-request read permissions. Do not use a personal access token as a long-lived runtime credential.
 
 ## Database and import
 
-Apply all migrations with a DDL identity, never the `lore_app` runtime role:
+Apply all migrations with a DDL identity, never the `trace_app` runtime role:
 
 ```bash
-lore-runtime migrate
+trace-runtime migrate
 ```
 
-Import a legacy LORE wiki export after setting the canonical organisation and repository IDs:
+Import a legacy Trace wiki export after setting the canonical organisation and repository IDs:
 
 ```bash
-lore-runtime import ./memory-export.md
-lore-runtime import ./memory-export.md --best-effort
+trace-runtime import ./memory-export.md
+trace-runtime import ./memory-export.md --best-effort
 ```
 
 Strict import validates the whole file before the first memory write. Best-effort mode reports malformed and duplicate records as skipped. Content hashes make a repeated import safe, and `import_runs` preserves the source checksum and outcome.
@@ -98,10 +98,10 @@ Strict import validates the whole file before the first memory write. Best-effor
 Each process is independently scalable:
 
 ```bash
-lore-runtime webhook --host 0.0.0.0 --port 8000
-lore-runtime outbox-worker
-lore-runtime task-worker
-lore-runtime console --host 127.0.0.1 --port 8080
+trace-runtime webhook --host 0.0.0.0 --port 8000
+trace-runtime outbox-worker
+trace-runtime task-worker
+trace-runtime console --host 127.0.0.1 --port 8080
 ```
 
 Webhook endpoints:
@@ -145,4 +145,4 @@ Deploy it with an existing ECS/App Runner task role, an SNS alarm topic, and exa
 
 Every demo step distinguishes live evidence from fixture data. No database, AWS, Bedrock, or GitHub result is claimed live until the corresponding preflight is green.
 
-— LORE
+— Trace

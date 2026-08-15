@@ -3,8 +3,8 @@ from uuid import uuid4
 
 import pytest
 
-from lore.domain import MemoryStatus, MemoryType
-from lore.migration import LegacyMemoryImporter, _sql_statements
+from trace_memory.domain import MemoryStatus, MemoryType
+from trace_memory.migration import LegacyMemoryImporter, _sql_statements
 
 
 class Sink:
@@ -16,7 +16,7 @@ class Sink:
         return True
 
 
-LEGACY = """LORE Memory #12
+LEGACY = """Trace Memory #12
 Source MR: !42 — Fix auth
 Decision: Use signed sessions
 Rejected: Plain cookies
@@ -34,14 +34,14 @@ def test_legacy_import_preserves_governance_fields() -> None:
     report = LegacyMemoryImporter(sink, uuid4(), uuid4()).import_text(LEGACY)
     assert report.imported == 1 and report.skipped == 0
     memory = sink.memories[0]
-    assert memory.display_id == "LORE-MEMORY-012"
+    assert memory.display_id == "TRACE-MEMORY-012"
     assert memory.memory_type is MemoryType.SECURITY_CONSTRAINT
     assert memory.status is MemoryStatus.ACTIVE and memory.confidence == 0.9
 
 
 def test_import_rejects_incomplete_memory_in_strict_mode() -> None:
     sink = Sink()
-    content = LEGACY + "\nLORE Memory #13\nDecision: X"
+    content = LEGACY + "\nTrace Memory #13\nDecision: X"
     with pytest.raises(ValueError, match="before writes"):
         LegacyMemoryImporter(sink, uuid4(), uuid4()).import_text(content)
     assert sink.memories == []

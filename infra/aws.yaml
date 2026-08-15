@@ -1,10 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: LORE durable task queue, dead-letter queue, alarms, and runtime IAM policy
+Description: Trace durable task queue, dead-letter queue, alarms, and runtime IAM policy
 
 Parameters:
   RuntimeRoleName:
     Type: String
-    Description: Existing ECS or App Runner task role that runs LORE
+    Description: Existing ECS or App Runner task role that runs Trace
   AlarmTopicArn:
     Type: String
     Description: SNS topic for production alerts
@@ -14,19 +14,19 @@ Parameters:
     Type: String
 
 Resources:
-  LoreDeadLetterQueue:
+  TraceDeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: lore-tasks-dlq.fifo
+      QueueName: trace-tasks-dlq.fifo
       FifoQueue: true
       ContentBasedDeduplication: false
       KmsMasterKeyId: alias/aws/sqs
       MessageRetentionPeriod: 1209600
 
-  LoreTaskQueue:
+  TraceTaskQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: lore-tasks.fifo
+      QueueName: trace-tasks.fifo
       FifoQueue: true
       ContentBasedDeduplication: false
       DeduplicationScope: messageGroup
@@ -35,31 +35,31 @@ Resources:
       VisibilityTimeout: 180
       MessageRetentionPeriod: 345600
       RedrivePolicy:
-        deadLetterTargetArn: !GetAtt LoreDeadLetterQueue.Arn
+        deadLetterTargetArn: !GetAtt TraceDeadLetterQueue.Arn
         maxReceiveCount: 3
 
-  LoreRuntimePolicy:
+  TraceRuntimePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: lore-runtime-least-privilege
+      PolicyName: trace-runtime-least-privilege
       Roles: [!Ref RuntimeRoleName]
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Action: [sqs:SendMessage, sqs:ReceiveMessage, sqs:DeleteMessage, sqs:ChangeMessageVisibility, sqs:GetQueueAttributes]
-            Resource: [!GetAtt LoreTaskQueue.Arn]
+            Resource: [!GetAtt TraceTaskQueue.Arn]
           - Effect: Allow
             Action: [bedrock:InvokeModel]
             Resource: [!Ref BedrockReasoningModelArn, !Ref BedrockEmbeddingModelArn]
 
-  LoreDeadLetterAlarm:
+  TraceDeadLetterAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmDescription: LORE has poison tasks requiring operator review
+      AlarmDescription: Trace has poison tasks requiring operator review
       Namespace: AWS/SQS
       MetricName: ApproximateNumberOfMessagesVisible
-      Dimensions: [{Name: QueueName, Value: !GetAtt LoreDeadLetterQueue.QueueName}]
+      Dimensions: [{Name: QueueName, Value: !GetAtt TraceDeadLetterQueue.QueueName}]
       Statistic: Maximum
       Period: 60
       EvaluationPeriods: 1
@@ -68,13 +68,13 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopicArn]
 
-  LoreOldestMessageAlarm:
+  TraceOldestMessageAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmDescription: LORE task processing is delayed by more than five minutes
+      AlarmDescription: Trace task processing is delayed by more than five minutes
       Namespace: AWS/SQS
       MetricName: ApproximateAgeOfOldestMessage
-      Dimensions: [{Name: QueueName, Value: !GetAtt LoreTaskQueue.QueueName}]
+      Dimensions: [{Name: QueueName, Value: !GetAtt TraceTaskQueue.QueueName}]
       Statistic: Maximum
       Period: 60
       EvaluationPeriods: 5
@@ -84,6 +84,6 @@ Resources:
       AlarmActions: [!Ref AlarmTopicArn]
 
 Outputs:
-  QueueUrl: {Value: !Ref LoreTaskQueue}
-  QueueArn: {Value: !GetAtt LoreTaskQueue.Arn}
-  DeadLetterQueueUrl: {Value: !Ref LoreDeadLetterQueue}
+  QueueUrl: {Value: !Ref TraceTaskQueue}
+  QueueArn: {Value: !GetAtt TraceTaskQueue.Arn}
+  DeadLetterQueueUrl: {Value: !Ref TraceDeadLetterQueue}

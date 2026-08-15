@@ -6,7 +6,7 @@ Run one webhook service and independently autoscaled outbox/task workers from th
 
 ## Signals
 
-- `lore_webhooks_total{status=...}`: ingress outcome.
+- `trace_webhooks_total{status=...}`: ingress outcome.
 - SQS `ApproximateAgeOfOldestMessage`: worker delay.
 - SQS DLQ visible count: poison task incident.
 - CockroachDB pending outbox count: publisher delay.

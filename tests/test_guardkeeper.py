@@ -1,9 +1,9 @@
-from lore.agents.guardkeeper import FindingLayer, Guardkeeper
+from trace_memory.agents.guardkeeper import FindingLayer, Guardkeeper
 
 
 class Candidates:
     def vector_candidates(self, **_: object) -> list[dict[str, object]]:
-        return [{"display_id": "LORE-MEMORY-001", "decision": "Use parameterized SQL queries", "security_relevant": True}]
+        return [{"display_id": "TRACE-MEMORY-001", "decision": "Use parameterized SQL queries", "security_relevant": True}]
 
 
 def test_guardkeeper_always_detects_direct_security_regressions() -> None:

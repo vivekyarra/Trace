@@ -22,5 +22,5 @@ CREATE INDEX IF NOT EXISTS audit_events_repository_created_idx
 CREATE INDEX IF NOT EXISTS agent_tasks_repository_created_idx
     ON agent_tasks (organization_id, repository_id, created_at DESC);
 
-GRANT SELECT ON TABLE schema_migrations TO lore_app;
-GRANT SELECT, INSERT ON TABLE import_runs TO lore_app;
+GRANT SELECT ON TABLE schema_migrations TO trace_app;
+GRANT SELECT, INSERT ON TABLE import_runs TO trace_app;

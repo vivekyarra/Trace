@@ -4,7 +4,7 @@ Database: defaultdb
 
 Statement:
 EXPLAIN SELECT id, embedding <=> '[1,0,0]' AS cosine_distance
-FROM lore_preflight_vectors
+FROM trace_preflight_vectors
 WHERE organization_id = '00000000-0000-0000-0000-000000000001'
   AND repository_id = '00000000-0000-0000-0000-000000000002'
 ORDER BY embedding <=> '[1,0,0]'
@@ -28,12 +28,12 @@ vectorized: true
         │
         └── • scan
             │ estimated row count: 3 (100% of the table; stats collected 12 minutes ago)
-            │ table: lore_preflight_vectors@lore_preflight_vectors_pkey
+            │ table: trace_preflight_vectors@trace_preflight_vectors_pkey
             │ spans: FULL SCAN
 
 index recommendations: 1
 1. type: index creation
-   SQL command: CREATE INDEX ON defaultdb.public.lore_preflight_vectors
+   SQL command: CREATE INDEX ON defaultdb.public.trace_preflight_vectors
      (organization_id, repository_id) STORING (embedding);
 
 Conclusion: the database accepted both the plain and prefixed vector indexes,

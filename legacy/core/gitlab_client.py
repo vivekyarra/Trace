@@ -1,5 +1,5 @@
 """
-GitLab API client wrapper for LORE. All GitLab operations go through this module.
+GitLab API client wrapper for Trace. All GitLab operations go through this module.
 """
 
 import logging
@@ -15,7 +15,7 @@ from config import (
     GITLAB_URL,
 )
 
-logger = logging.getLogger("lore.gitlab_client")
+logger = logging.getLogger("trace.gitlab_client")
 
 
 class GitLabClient:

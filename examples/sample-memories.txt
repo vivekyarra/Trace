@@ -1,4 +1,4 @@
-LORE Memory #001
+Trace Memory #001
 Source MR: !42 — Add retry logic
 Date: 2026-01-15
 Governs files: src/api/auth.py, src/api/retry.py
@@ -16,7 +16,7 @@ Blocks: Memory #003
 Source type: discussion
 Security relevant: no
 
-LORE Memory #002
+Trace Memory #002
 Source MR: !55 — Cache invalidation strategy
 Date: 2026-02-10
 Governs files: src/api/auth.py, src/cache/redis.py
@@ -34,7 +34,7 @@ Blocks: N/A
 Source type: code
 Security relevant: yes
 
-LORE Memory #003
+Trace Memory #003
 Source MR: !60 — Auth token rotation
 Date: 2025-06-01
 Governs files: src/api/auth.py, src/auth/tokens.py
@@ -52,7 +52,7 @@ Blocks: N/A
 Source type: both
 Security relevant: yes
 
-LORE Memory #004
+Trace Memory #004
 Source MR: !78 — Database connection pooling
 Date: 2026-03-15
 Governs files: src/db/pool.py, src/db/config.py
@@ -70,7 +70,7 @@ Blocks: N/A
 Source type: discussion
 Security relevant: no
 
-LORE Pattern #001
+Trace Pattern #001
 Source MR: !42 — Modernize type hints
 Date: 2026-01-20
 Rule: Use X | None instead of Optional[X]
@@ -83,7 +83,7 @@ Examples:
   Bad:  def get_user(id: int) -> Optional[User]:
   Good: def get_user(id: int) -> User | None:
 
-LORE Pattern #002
+Trace Pattern #002
 Source MR: !65 — Enforce structured logging
 Date: 2026-02-28
 Rule: Use structlog with bound loggers instead of stdlib logging

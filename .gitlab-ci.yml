@@ -1,12 +1,12 @@
 # =============================================================================
-# LORE CI/CD Pipeline
+# Trace CI/CD Pipeline
 # =============================================================================
-# Infrastructure for the LORE GitLab Duo agent/flow project.
+# Infrastructure for the Trace GitLab Duo agent/flow project.
 #
 # Stages:
 #   1. validate  — lint YAML and enforce catalog size limits
 #   2. sync      — publish to GitLab AI Catalog on version tags
-#   3. health    — scheduled LORECAST health-check audits
+#   3. health    — scheduled Tracecast health-check audits
 # =============================================================================
 
 stages:
@@ -64,17 +64,17 @@ validate-yaml:
 
     - echo "==> All validations passed."
 
-test-lore-cli:
+test-trace-cli:
   stage: validate
   image: python:3.12-slim
   rules:
     - changes:
-        - "lore-cli/**/*"
+        - "trace-cli/**/*"
   script:
-    - echo "==> Installing lore-cli and test dependencies..."
-    - pip install ./lore-cli[test] || pip install ./lore-cli && pip install pytest
-    - echo "==> Running lore-cli tests..."
-    - python -m pytest lore-cli/tests/ -v
+    - echo "==> Installing trace-cli and test dependencies..."
+    - pip install ./trace-cli[test] || pip install ./trace-cli && pip install pytest
+    - echo "==> Running trace-cli tests..."
+    - python -m pytest trace-cli/tests/ -v
 
 # ---------------------------------------------------------------------------
 # Stage 2: sync
@@ -94,7 +94,7 @@ catalog-sync:
     # Only run on tags that look like semver releases
     - if: '$CI_COMMIT_TAG =~ /^v\d+/'
   script:
-    - echo "==> Syncing LORE to GitLab AI Catalog (tag $CI_COMMIT_TAG)..."
+    - echo "==> Syncing Trace to GitLab AI Catalog (tag $CI_COMMIT_TAG)..."
 
     # Trigger the AI Catalog sync via the GitLab API
     - |
@@ -112,43 +112,43 @@ sync-memories:
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+/'
   script:
-    - echo "==> Installing lore-cli..."
-    - pip install ./lore-cli
+    - echo "==> Installing trace-cli..."
+    - pip install ./trace-cli
     - echo "==> Syncing memories from issues to wiki pages..."
-    - lore sync --project-id $CI_PROJECT_ID --gitlab-url $CI_SERVER_URL --token $CATALOG_SYNC_TOKEN
+    - trace sync --project-id $CI_PROJECT_ID --gitlab-url $CI_SERVER_URL --token $CATALOG_SYNC_TOKEN
 
 # ---------------------------------------------------------------------------
 # Stage 3: health
 # ---------------------------------------------------------------------------
-# Placeholder for scheduled LORECAST health audits.
+# Placeholder for scheduled Tracecast health audits.
 #
 # To activate:
 #   1. Go to CI/CD > Schedules and create a new schedule
 #      (e.g. daily at 06:00 UTC, weekly on Monday, etc.).
 #   2. Replace the placeholder script below with the actual
-#      LORECAST invocation once the health-check tooling is ready.
+#      Tracecast invocation once the health-check tooling is ready.
 # ---------------------------------------------------------------------------
-lorecast-scheduled:
+tracecast-scheduled:
   stage: health
   image: python:3.12-slim
   rules:
     # Only run on pipeline schedules — never on push or MR events
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
   script:
-    - echo "==> LORECAST scheduled health audit"
+    - echo "==> Tracecast scheduled health audit"
     - echo "    This is a placeholder job."
     - echo "    To enable real health checks, replace this script with"
-    - echo "    the LORECAST CLI invocation or API call, for example:"
+    - echo "    the Tracecast CLI invocation or API call, for example:"
     - echo ""
-    - echo '    python3 -m lorecast audit --format gitlab-report'
+    - echo '    python3 -m tracecast audit --format gitlab-report'
     - echo ""
-    - echo "    See AGENTS.md for the full LORECAST specification."
+    - echo "    See AGENTS.md for the full Tracecast specification."
     - echo "==> Done (no-op)."
 
 # ---------------------------------------------------------------------------
 # Stage 4: pages
 # ---------------------------------------------------------------------------
-# Generates a self-contained HTML dashboard from LORE memories and publishes
+# Generates a self-contained HTML dashboard from Trace memories and publishes
 # it to GitLab Pages.  Runs on the default branch and version tags.
 # ---------------------------------------------------------------------------
 pages:
@@ -158,10 +158,10 @@ pages:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     - if: '$CI_COMMIT_TAG =~ /^v\d+/'
   script:
-    - echo "==> Installing lore-cli..."
-    - pip install ./lore-cli
-    - echo "==> Generating LORE dashboard..."
-    - lore dashboard --from-file examples/sample-memories.txt --output public/
+    - echo "==> Installing trace-cli..."
+    - pip install ./trace-cli
+    - echo "==> Generating Trace dashboard..."
+    - trace dashboard --from-file examples/sample-memories.txt --output public/
   artifacts:
     paths:
       - public

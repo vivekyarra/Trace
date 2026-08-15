@@ -1,4 +1,4 @@
--- LORE canonical institutional-memory schema for CockroachDB v26.2+.
+-- Trace canonical institutional-memory schema for CockroachDB v26.2+.
 -- Apply with a migration runner using a DDL-capable deployment role; the runtime
 -- role is intentionally restricted to application tables.
 
@@ -170,8 +170,8 @@ CREATE TABLE IF NOT EXISTS outbox_events (
 CREATE INDEX IF NOT EXISTS outbox_events_pending_idx ON outbox_events (published_at, created_at);
 
 -- Provision separately with a deployment identity.  Application code must use
--- lore_app, never the cluster owner.  The grants are intentionally explicit.
-CREATE ROLE IF NOT EXISTS lore_app;
+-- trace_app, never the cluster owner.  The grants are intentionally explicit.
+CREATE ROLE IF NOT EXISTS trace_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE organizations, repositories, memories,
     memory_sources, memory_scopes, memory_relationships, agent_tasks, retrieval_events,
-    retrieval_candidates, agent_actions, memory_feedback, audit_events, outbox_events TO lore_app;
+    retrieval_candidates, agent_actions, memory_feedback, audit_events, outbox_events TO trace_app;

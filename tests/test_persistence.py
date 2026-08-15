@@ -1,4 +1,4 @@
-from lore.persistence.database import is_retryable_serialization_error
+from trace_memory.persistence.database import is_retryable_serialization_error
 from pathlib import Path
 
 
@@ -13,7 +13,7 @@ def test_only_cockroach_serialization_conflicts_are_retryable() -> None:
 
 
 def test_vector_query_is_tenant_prefixed_and_filters_active_memories() -> None:
-    source = Path("lore/persistence/repositories.py").read_text(encoding="utf-8")
+    source = Path("trace_memory/persistence/repositories.py").read_text(encoding="utf-8")
     assert "organization_id = :organization_id" in source
     assert "repository_id = :repository_id" in source
     assert "status = 'ACTIVE'" in source
@@ -25,4 +25,4 @@ def test_migration_declares_canonical_vector_memory_and_outbox() -> None:
     assert "embedding VECTOR(1024)" in migration
     assert "CREATE VECTOR INDEX IF NOT EXISTS memories_embedding_vector_idx" in migration
     assert "CREATE TABLE IF NOT EXISTS outbox_events" in migration
-    assert "CREATE ROLE IF NOT EXISTS lore_app" in migration
+    assert "CREATE ROLE IF NOT EXISTS trace_app" in migration

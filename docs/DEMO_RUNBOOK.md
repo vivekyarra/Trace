@@ -1,4 +1,4 @@
-# LORE judge demo runbook
+# Trace judge demo runbook
 
 Target length: 4 minutes. Use a dedicated demo repository and synthetic decision text. Do not show secrets, connection strings, tokens, AWS account IDs, or raw customer code.
 
@@ -22,7 +22,7 @@ If any check fails, label the segment `REPLAY` and use a previously captured rea
 
 Open the repository pull request containing a deliberate retry-policy conflict.
 
-Say: “This change looks reasonable in isolation. The team rejected it after an earlier retry storm, but that decision is buried in history. LORE makes that history active.”
+Say: “This change looks reasonable in isolation. The team rejected it after an earlier retry storm, but that decision is buried in history. Trace makes that history active.”
 
 ### 0:30–1:10 — Canonical memory
 
@@ -34,12 +34,12 @@ Say: “This is not a generated dashboard fixture. These counts come read-only f
 
 Push or reopen the prepared pull request. In GitHub webhook deliveries, show the signed delivery succeeded. Then show SQS receive activity and refresh the console until the task is `SUCCEEDED`.
 
-Open the LORE review comment. Highlight:
+Open the Trace review comment. Highlight:
 
 1. the historical decision and evidence;
 2. the unfulfilled issue promise, if present;
 3. the deterministic security section;
-4. the `— LORE` signature.
+4. the `— Trace` signature.
 
 Say: “Claude performs the semantic reasoning, but deterministic security checks and strict output validation remain in control.”
 
@@ -53,13 +53,13 @@ Say: “GitHub is acknowledged only after one task and one outbox event commit t
 
 Merge the prepared safe alternative or show a labelled real replay. Refresh the console and query the decision through the read-only MCP surface. Show source PR, confidence basis, lifecycle state, and governing repository scope.
 
-Say: “LORE did not just summarize the pull request. It created a governed memory with provenance. A future override supersedes it without deleting the historical reason.”
+Say: “Trace did not just summarize the pull request. It created a governed memory with provenance. A future override supersedes it without deleting the historical reason.”
 
 ### 3:40–4:00 — Close
 
 Return to the console.
 
-Say: “Coding assistants help teams write faster. LORE helps them remember why the code must be written this way.”
+Say: “Coding assistants help teams write faster. Trace helps them remember why the code must be written this way.”
 
 ## Failure fallback
 

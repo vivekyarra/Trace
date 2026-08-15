@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trace-cli"
+version = "1.0.0"
+description = "CLI for Trace. Syncs, validates, and reports on architectural decision memories stored in GitLab."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    {name = "Trace Team"},
+]
+dependencies = [
+    "python-gitlab>=4.0.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=9.0.3,<10",
+]
+dev = [
+    "pytest>=9.0.3,<10",
+    "pytest-cov>=4.0",
+]
+
+[project.scripts]
+trace = "trace_cli.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["trace_cli*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
