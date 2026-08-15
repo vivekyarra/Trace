@@ -42,7 +42,7 @@ FALLBACK_SNAPSHOT = {
         "id": "8033c0ed-9596-4aeb-ba95-e31d5825ac34",
         "reasoning_model": "apac.anthropic.claude-3-haiku-20240307-v1:0",
         "bedrock_selection": 1.0,
-        "github_comment": "https://github.com/vivekyarra/Trace/pull/5#issuecomment-5256843528",
+        "github_comment": "https://github.com/vivekyarra/Trace/pull/5#issuecomment-5302092366",
     },
     "evidence": "https://github.com/vivekyarra/Trace/blob/main/docs/evidence/core-live-proof.md",
 }

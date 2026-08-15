@@ -19,7 +19,7 @@ PR B remains open and was never merged. At the time of this isolated live run, `
 | Stage | Identifier |
 |---|---|
 | PR A task | `4facb438-2917-488b-b500-fcfd45565905` |
-| PR A GitHub comment | `5256842332` |
+| PR A GitHub comment | `5302092662` ([https://github.com/vivekyarra/Trace/pull/4#issuecomment-5302092662](https://github.com/vivekyarra/Trace/pull/4#issuecomment-5302092662)) |
 | Memory | `TRACE-MEMORY-00401` / `679be7b7-1476-4c7e-aacb-318f0cab3e80` |
 | Source | `https://github.com/vivekyarra/Trace/pull/4` |
 | Embedding | `amazon.titan-embed-text-v2:0`, version `v2`, stored `true` |
@@ -28,7 +28,7 @@ PR B remains open and was never merged. At the time of this isolated live run, `
 | Reasoning model | `apac.anthropic.claude-3-haiku-20240307-v1:0` |
 | Hybrid pre-rerank score | `0.28500000000000003` |
 | Bedrock selection | `1.00`, selected `true` |
-| PR B GitHub comment | `5256843528` |
+| PR B GitHub comment | `5302092366` ([https://github.com/vivekyarra/Trace/pull/5#issuecomment-5302092366](https://github.com/vivekyarra/Trace/pull/5#issuecomment-5302092366)) |
 
 The successful live run occurred before commit `3f40f86`, and its textual `selection_reason` durably contains `Bedrock=1.00`. Commit `3f40f86` additionally persists that numeric value in `llm_rerank_score`; its regression test and branch CI are green. A post-fix live rerun was not substituted into this evidence because AWS subsequently returned `INVALID_PAYMENT_INSTRUMENT`. The original successful chain above remains independently inspectable in GitHub and CockroachDB.
 
