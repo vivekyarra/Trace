@@ -24,13 +24,15 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install runtime and test dependencies
-        run: python -m pip install -e ".[aws,cockroach,test]"
+        run: |
+          python -m pip install --upgrade "pip>=26.1.2"
+          python -m pip install -e ".[aws,cockroach,github-app,test]"
       - name: Run runtime tests
         run: python -m pytest tests
       - name: Static and bytecode checks
         run: |
-          python -m ruff check trace_memory
-          python -m compileall -q trace_memory
+          python -m ruff check trace_memory infra scripts tests
+          python -m compileall -q trace_memory infra scripts
       - name: Build and smoke-test the installed artifact
         run: |
           python -m pip install "build>=1.2,<2"
@@ -42,9 +44,13 @@ jobs:
         run: |
           test -f migrations/001_canonical_memory.sql
           test -f migrations/002_runtime_operations.sql
+          test -f migrations/003_production_hardening.sql
+          test -f migrations/004_runtime_least_privilege.sql
           grep -q "CREATE VECTOR INDEX" migrations/001_canonical_memory.sql
           grep -q "VECTOR(1024)" migrations/001_canonical_memory.sql
           grep -q "schema_migrations" migrations/002_runtime_operations.sql
+          grep -q "REVOKE DELETE" migrations/004_runtime_least_privilege.sql
+          grep -q "GRANT SELECT ON TABLE memory_feedback TO trace_mcp_reader" migrations/004_runtime_least_privilege.sql
       - name: Validate AWS infrastructure
         run: |
           python -m pip install "cfn-lint>=1.38,<2"

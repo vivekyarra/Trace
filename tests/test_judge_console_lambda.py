@@ -1,61 +1,65 @@
 import json
+from types import SimpleNamespace
 
 from infra import judge_console_lambda
-from infra.judge_console_lambda import PRESET_DIFF, handler, run_trace
+from infra.judge_console_lambda import PRESET_DIFF, handler
+from trace_memory.agents import Guardkeeper
+from trace_memory.agents.guardkeeper import RerankEnvelope, RerankSelection
+from trace_memory.runtime import ReadOnlyReviewPipeline
 
 
 class FakeEmbedder:
     model_id = "fake-titan"
 
-    def embed(self, text: str) -> list[float]:
+    def embed(self, text: str) -> object:
         assert "permission_cache" in text
-        return [0.1] * 1024
+        return SimpleNamespace(values=[0.1] * 1024, model_id=self.model_id)
 
 
-class FakeRetriever:
-    def retrieve(self, embedding: list[float], *, limit: int = 5) -> list[dict[str, object]]:
-        assert len(embedding) == 1024
-        assert limit == 5
+class FakeCandidates:
+    def vector_candidates(self, **kwargs: object) -> list[dict[str, object]]:
+        assert str(kwargs["embedding"]).startswith("[")
         return [
             {
                 "id": "memory-uuid",
                 "display_id": "TRACE-MEMORY-00401",
                 "decision": "Invalidate authorization decisions immediately after revocation.",
+                "rationale": "Stale authorization grants access after revocation.",
                 "vector_distance": 0.08,
-                "source_url": "https://github.com/vivekyarra/Trace/pull/4",
+                "confidence": 1.0,
+                "security_relevant": True,
+                "scopes": ["src/api/auth.py"],
+                "feedback_score": 0.0,
+                "relationships": [],
+                "sources": [{"source_url": "https://github.com/vivekyarra/Trace/pull/4"}],
             }
         ]
 
 
-class FakeClassifier:
-    model_id = "fake-claude"
+class FakeReasoner:
+    model_id = "fake-bedrock"
 
-    def classify(self, diff: str, candidates: list[dict[str, object]]) -> dict[str, object]:
-        assert diff == PRESET_DIFF
-        assert candidates[0]["display_id"] == "TRACE-MEMORY-00401"
-        return {
-            "classification": "CONFLICT",
-            "severity": "HIGH",
-            "summary": "The ten-minute cache reintroduces stale authorization decisions.",
-            "selected_memory_ids": ["TRACE-MEMORY-00401"],
-            "final_action": "Reject the cache until revocation invalidation is implemented.",
-        }
+    def reason_json(self, **_kwargs: object) -> RerankEnvelope:
+        return RerankEnvelope(
+            selections=[RerankSelection(memory_id="TRACE-MEMORY-00401", score=0.98, reason="conflict")],
+            final_action="Reject the cache until revocation invalidation is implemented.",
+        )
 
 
-class ClearClassifier(FakeClassifier):
-    def classify(self, diff: str, candidates: list[dict[str, object]]) -> dict[str, object]:
-        result = super().classify(diff, candidates)
-        result["classification"] = "CLEAR"
-        result["severity"] = "LOW"
-        return result
+class ClearReasoner(FakeReasoner):
+    def reason_json(self, **_kwargs: object) -> RerankEnvelope:
+        return RerankEnvelope(selections=[], final_action="No memory conflict found.")
+
+
+def pipeline(reasoner: FakeReasoner) -> ReadOnlyReviewPipeline:
+    return ReadOnlyReviewPipeline(FakeEmbedder(), Guardkeeper(FakeCandidates(), reasoner=reasoner))
 
 
 def test_live_run_traverses_embedding_retrieval_classification_and_receipt() -> None:
-    result = run_trace(
-        PRESET_DIFF,
-        embedder=FakeEmbedder(),
-        retriever=FakeRetriever(),
-        classifier=FakeClassifier(),
+    result = pipeline(FakeReasoner()).run(
+        organization_id=SimpleNamespace(),
+        repository_id=SimpleNamespace(),
+        diff=PRESET_DIFF,
     )
 
     assert result["mode"] == "LIVE"
@@ -72,15 +76,14 @@ def test_live_run_traverses_embedding_retrieval_classification_and_receipt() -> 
 
 
 def test_retrieved_memory_does_not_change_review_without_a_conflict() -> None:
-    result = run_trace(
-        PRESET_DIFF,
-        embedder=FakeEmbedder(),
-        retriever=FakeRetriever(),
-        classifier=ClearClassifier(),
+    result = pipeline(ClearReasoner()).run(
+        organization_id=SimpleNamespace(),
+        repository_id=SimpleNamespace(),
+        diff=PRESET_DIFF,
     )
 
     receipt = result["memory_consequence_receipt"]
-    assert result["judgment"]["selected_memory_ids"] == ["TRACE-MEMORY-00401"]
+    assert result["judgment"]["selected_memory_ids"] == []
     assert receipt["memory_changed_review"] is False
     assert receipt["governing_memory_ids"] == []
     assert receipt["memory_conflict_findings"] == 0

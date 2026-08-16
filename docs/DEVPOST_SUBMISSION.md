@@ -49,13 +49,13 @@ Three design choices make that possible:
 ## How we built it
 
 - **CockroachDB Cloud** stores tenant-scoped memories, `VECTOR(1024)` embeddings, provenance, relationships, retrieval traces, tasks, audit events, and a transactional outbox in one serializable source of truth.
-- **CockroachDB Distributed Vector Indexing** is configured with organization and repository prefix columns. We do not claim optimizer index selection for the tiny proof corpus; its recorded `EXPLAIN` chose a scan.
+- **CockroachDB Distributed Vector Indexing** is verified against 10,000 realistic 1024-dimensional rows. The production materialized ANN query uses `memories_embedding_vector_idx` with exact tenant-prefix spans and no full scan.
 - **CockroachDB Cloud Managed MCP** was authorized with Read Data only and independently retrieved the exact live memory and retrieval rows.
 - **Amazon Titan Text Embeddings V2 on Bedrock** creates stored memory vectors and fresh query vectors.
 - **Amazon Bedrock** runs schema-constrained reasoning with Nova Pro as the reliable primary and Mistral Large as the strong secondary. The receipt records the model that actually ran.
 - **AWS Lambda** hosts the public read-only `Run Trace` app. Its primary route traverses Bedrock → CockroachDB → Bedrock; it exposes no write route.
 - **Amazon SQS FIFO, KMS, and CloudWatch** make the production webhook path durable, encrypted, bounded, and observable.
-- **Python, Pydantic, SQLAlchemy, and pg8000** enforce typed boundaries from model output to transactional state and the lightweight Lambda read path.
+- **Python, Pydantic, SQLAlchemy, psycopg2, and the CockroachDB SQLAlchemy dialect** enforce typed boundaries from model output through the same Guardkeeper pipeline used by both production automation and the public Lambda read path.
 
 ## Challenges we ran into
 
@@ -85,11 +85,11 @@ Most importantly, memory becomes valuable when it can change an action. Retrieva
 
 ## What's next
 
-Next we will add GitHub App installation-token minting, multi-region workers, operator-approved dead-letter replay, retrieval-quality evaluation sets, and organization-level policy controls. These are roadmap items, not claims about this release.
+Next we will add multi-region workers, operator-approved dead-letter replay, retrieval-quality evaluation sets, and organization-level policy controls. These are roadmap items, not claims about this release.
 
 ## Built with
 
-CockroachDB Cloud, CockroachDB Distributed Vector Indexing, CockroachDB Cloud Managed MCP, Amazon Bedrock, Amazon Nova Pro, Mistral Large, Amazon Titan Text Embeddings V2, AWS Lambda, Amazon SQS, AWS KMS, Amazon CloudWatch, GitHub, Python, Pydantic, SQLAlchemy, and pg8000.
+CockroachDB Cloud, CockroachDB Distributed Vector Indexing, CockroachDB Cloud Managed MCP, Amazon Bedrock, Amazon Nova Pro, Mistral Large, Amazon Titan Text Embeddings V2, AWS Lambda, Amazon SQS, AWS KMS, Amazon CloudWatch, GitHub Apps, Python, Pydantic, SQLAlchemy, and psycopg2.
 
 ## Closing
 

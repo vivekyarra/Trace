@@ -2,7 +2,7 @@ import pytest
 
 from trace_memory.console import render_console
 from trace_memory.observability import Metrics
-from trace_memory.security import redact, validate_database_url
+from trace_memory.security import RuntimeSettings, redact, validate_database_url
 
 
 def test_remote_database_requires_verified_tls() -> None:
@@ -31,3 +31,24 @@ def test_console_escapes_runtime_content() -> None:
     page = render_console({"counts": {"tasks": 1}, "note": "<script>alert(1)</script>"})
     assert "<script>alert" not in page
     assert "Trace Judge Console" in page
+
+
+def test_runtime_settings_accept_github_app_without_legacy_token(monkeypatch) -> None:
+    values = {
+        "DATABASE_URL": "cockroachdb://user@db.example/trace?sslmode=verify-full",
+        "GITHUB_WEBHOOK_SECRET": "s" * 32,
+        "GITHUB_REPOSITORY": "acme/widget",
+        "TRACE_SQS_QUEUE_URL": "https://sqs.example/tasks",
+        "TRACE_SQS_DLQ_URL": "https://sqs.example/dlq",
+        "GITHUB_APP_ID": "4604859",
+        "GITHUB_APP_INSTALLATION_ID": "153959613",
+        "GITHUB_APP_PRIVATE_KEY": "private-key",
+    }
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    for name, value in values.items():
+        monkeypatch.setenv(name, value)
+
+    settings = RuntimeSettings.from_env()
+
+    assert settings.github_token == ""
+    assert settings.github_app_id == "4604859"

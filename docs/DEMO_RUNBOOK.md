@@ -62,7 +62,7 @@ Open the `Trace Auditor` workspace agent and ask it to audit retrieval `c12d9de4
 
 Say: “CockroachDB is not just a vector sidecar. It keeps vectors, provenance, lifecycle, dependencies, tasks, and audit truth together under serializable transactions. Managed MCP gives judges a second, direct read-only inspection path.”
 
-Do not claim that the tiny proof query used the vector index. Say that distributed vector indexing is configured and the small-corpus `EXPLAIN` chose a scan.
+Show the recorded 10,000-row `EXPLAIN ANALYZE`: the production query uses `memories_embedding_vector_idx`, exact tenant-prefix spans, and no full scan. Keep database execution time separate from end-to-end Managed MCP or Lambda timing.
 
 ### 2:25–2:40 — Close
 

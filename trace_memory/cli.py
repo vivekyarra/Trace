@@ -16,7 +16,11 @@ from trace_memory.observability import Metrics
 from trace_memory.persistence import CockroachDatabase, MemoryRepository, RuntimeRepository
 from trace_memory.runtime import OutboxWorker, SqsPublisher, SqsTaskWorker
 from trace_memory.runtime.automation import GitHubAutomation
-from trace_memory.runtime.github import GitHubClient, GitHubWebhookRuntime
+from trace_memory.runtime.github import (
+    GitHubAppTokenProvider,
+    GitHubClient,
+    GitHubWebhookRuntime,
+)
 from trace_memory.security import RuntimeSettings, validate_database_url
 from trace_memory.server import RuntimeServer
 
@@ -71,8 +75,13 @@ def main(argv: list[str] | None = None) -> int:
         from trace_memory.ai import BedrockEmbedder, BedrockReasoner
         memories = MemoryRepository(database)
         reasoner = BedrockReasoner()
+        github_token = settings.github_token or GitHubAppTokenProvider(
+            settings.github_app_id,
+            settings.github_app_installation_id,
+            settings.github_app_private_key,
+        )
         automation = GitHubAutomation(
-            github=GitHubClient(settings.github_token, settings.github_repository),
+            github=GitHubClient(github_token, settings.github_repository),
             reasoner=reasoner, embedder=BedrockEmbedder(),
             guardkeeper=Guardkeeper(memories, reasoner=reasoner), memories=memories,
             organization_id=organization_id, repository_id=repository_id, effects=store,
